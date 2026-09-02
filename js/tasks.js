@@ -1,4 +1,5 @@
 import { saveTaskState } from './storage.js';
+import { matchesTaskSearch } from './search.js';
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character])); }
 function isUrgent(task) { return /^D-(?:[1-7])$/.test(task.day) || task.day.includes('당일') || task.day.includes('+1일'); }
@@ -7,8 +8,7 @@ export function filterTasks(tasks, state, {stage, search, filters}) {
   const query = search.trim().toLowerCase();
   return tasks.filter(task => {
     const taskState = state[task.id] || {};
-    const searchable = [task.title, task.description, task.caution].join(' ').toLowerCase();
-    return (stage === '전체' || task.stage === stage) && (!query || searchable.includes(query)) && (!filters.has('required') || task.required) && (!filters.has('incomplete') || !taskState.completed) && (!filters.has('urgent') || isUrgent(task));
+    return (stage === '전체' || task.stage === stage) && (!query || matchesTaskSearch(task, query)) && (!filters.has('required') || task.required) && (!filters.has('incomplete') || !taskState.completed) && (!filters.has('urgent') || isUrgent(task));
   });
 }
 

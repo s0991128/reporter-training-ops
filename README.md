@@ -16,11 +16,13 @@ python -m http.server 8000
 
 ```text
 index.html          화면 구조
+css/style.css       스타일 진입점
 css/styles.css      공공기관 내부 업무용 UI 스타일
 data/tasks.json     업무 원본 데이터(향후 약 110개로 확장)
 js/app.js           앱 초기화, 검색/필터/정렬 이벤트
 js/dashboard.js     요약 카드와 단계별 진행률
 js/tasks.js         업무 카드 렌더링과 업무 이벤트
+js/search.js        업무명/설명/주의사항 검색
 js/storage.js       localStorage 상태 저장/조회
 ```
 
