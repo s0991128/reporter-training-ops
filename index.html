@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="수습기자 기본교육 업무를 표준화하고 운영 현황을 관리하는 미니리더" />
+    <title>수습기자 기본교육 운영 미니리더</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <p class="eyebrow">TRAINING OPERATIONS / 2026</p>
+          <h1>수습기자 기본교육 운영 미니리더</h1>
+          <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
+        </div>
+        <div class="header-status"><span class="status-dot"></span>브라우저에 안전하게 저장 중</div>
+      </header>
+
+      <main>
+        <section class="summary-grid" aria-label="업무 요약">
+          <article class="summary-card summary-total"><div><span class="card-label">전체 업무</span><strong id="total-count">0</strong></div><span class="card-icon">ALL</span></article>
+          <article class="summary-card summary-complete"><div><span class="card-label">완료</span><strong id="complete-count">0</strong></div><span class="card-icon">OK</span></article>
+          <article class="summary-card summary-progress"><div><span class="card-label">진행</span><strong id="progress-count">0</strong></div><span class="card-icon">RUN</span></article>
+          <article class="summary-card summary-pending"><div><span class="card-label">미착수</span><strong id="pending-count">0</strong></div><span class="card-icon">NEXT</span></article>
+          <article class="progress-card"><div class="progress-heading"><span class="card-label">전체 진행률</span><strong id="progress-percent">0%</strong></div><div class="progress-track"><span id="overall-progress"></span></div><p id="progress-caption">첫 업무를 완료하면 진행률이 표시됩니다.</p></article>
+        </section>
+
+        <section class="workspace">
+          <aside class="sidebar">
+            <div class="section-heading"><div><p class="eyebrow">OVERVIEW</p><h2>단계별 현황</h2></div></div>
+            <div id="stage-progress" class="stage-list"></div>
+            <div class="privacy-note"><span class="lock-mark">▣</span><div><strong>개인정보 보호</strong><p>교육생 개인정보는 저장하지 않습니다.<br />업무 처리 여부만 기록됩니다.</p></div></div>
+          </aside>
+
+          <section class="task-area">
+            <div class="toolbar">
+              <div class="filter-tabs" role="tablist" aria-label="업무 단계 필터">
+                <button class="filter-tab active" data-stage="전체" role="tab">전체 <span id="all-tab-count">0</span></button>
+                <button class="filter-tab" data-stage="사전준비" role="tab">사전준비</button>
+                <button class="filter-tab" data-stage="교육운영" role="tab">교육운영</button>
+                <button class="filter-tab" data-stage="종료처리" role="tab">종료처리</button>
+                <button class="filter-tab" data-stage="정산" role="tab">정산</button>
+                <button class="filter-tab" data-stage="결과보고" role="tab">결과보고</button>
+              </div>
+              <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="업무명, 설명, 주의사항 검색" /></label>
+            </div>
+            <div class="sub-toolbar"><p id="result-summary">업무를 불러오는 중입니다.</p><div class="quick-filters"><button class="quick-filter" data-filter="required">필수만</button><button class="quick-filter" data-filter="incomplete">미완료</button><button class="quick-filter" data-filter="urgent">마감임박</button><select id="sort-select" aria-label="업무 정렬"><option value="default">기준일 순</option><option value="status">상태 순</option><option value="category">카테고리 순</option></select></div></div>
+            <div id="task-list" class="task-list" aria-live="polite"></div>
+          </section>
+        </section>
+      </main>
+      <footer><span>수습기자 교육운영 미니리더</span><span>샘플 데이터 20건 · 개인정보 미수집</span></footer>
+    </div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
