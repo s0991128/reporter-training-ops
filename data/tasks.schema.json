@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reporter Training Operations Task",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "phase", "timing", "category", "title", "description", "required", "assigneeRole", "completionCriteria", "riskLevel", "dependencies", "documents", "handover", "budget", "repeat", "aiCheck", "tags", "active", "sortOrder"],
+    "properties": {
+      "id": {"type":"string", "pattern":"^(PRE|OPS|CLS|FIN|RPT)-[0-9]{3}$"},
+      "phase": {"type":"string", "enum":["사전준비", "교육운영", "종료처리", "정산", "결과보고"]},
+      "timing": {
+        "type":"object", "required":["type", "value", "label"],
+        "properties": {
+          "type":{"type":"string", "enum":["D_DAY", "TRAINING_DAY", "END_DAY", "AFTER_END", "MANUAL"]},
+          "value":{"type":["integer", "null"]},
+          "label":{"type":"string"}
+        }, "additionalProperties":false
+      },
+      "category":{"type":"string", "enum":["기획", "교육과정", "강사", "교육생", "시설", "숙박", "교통", "식사", "물품", "안내", "행정", "계약", "예산", "정산", "설문", "성과", "결과보고", "기타"]},
+      "title":{"type":"string"}, "description":{"type":"string"}, "required":{"type":"boolean"}, "assigneeRole":{"type":"string"}, "estimatedMinutes":{"type":"integer", "minimum":0},
+      "completionCriteria":{"type":"array", "items":{"type":"string"}},
+      "riskLevel":{"type":"string", "enum":["HIGH", "MEDIUM", "LOW"]},
+      "dependencies":{"type":"array", "items":{"type":"string"}},
+      "documents":{"type":"array", "items":{"type":"object", "required":["name", "required"], "properties":{"name":{"type":"string"}, "required":{"type":"boolean"}}, "additionalProperties":false}},
+      "handover":{"type":"object", "required":["caution", "knowhow", "previousIssue"], "properties":{"caution":{"type":"string"}, "knowhow":{"type":"string"}, "previousIssue":{"type":"string"}}, "additionalProperties":false},
+      "budget":{"type":"object", "required":["related", "category"], "properties":{"related":{"type":"boolean"}, "category":{"type":["string", "null"]}}, "additionalProperties":false},
+      "repeat":{"type":"object", "required":["enabled", "rule"], "properties":{"enabled":{"type":"boolean"}, "rule":{"type":["string", "null"]}}, "additionalProperties":false},
+      "aiCheck":{"type":"object", "required":["enabled", "keywords"], "properties":{"enabled":{"type":"boolean"}, "keywords":{"type":"array", "items":{"type":"string"}}}, "additionalProperties":false},
+      "tags":{"type":"array", "items":{"type":"string"}}, "active":{"type":"boolean"}, "sortOrder":{"type":"number"}
+    },
+    "additionalProperties":false
+  }
+}

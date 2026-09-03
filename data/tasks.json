@@ -1,22 +1,993 @@
 [
-  {"id":"PRE-001","stage":"사전준비","day":"D-30","title":"교육 일정 및 운영안 확정","description":"교육 기간, 장소, 주요 커리큘럼을 확정하고 내부 운영안을 공유합니다.","required":true,"role":"교육담당","completion":"최종 운영안 승인 및 공유","minutes":60,"category":"기획","caution":"변경사항은 관련 부서에 즉시 공지","materials":"교육 운영안","budget":"교육운영비"},
-  {"id":"PRE-002","stage":"사전준비","day":"D-21","title":"강사 섭외 및 출강 일정 확인","description":"과목별 강사 섭외 현황과 출강 가능 일정을 확인합니다.","required":true,"role":"교육담당","completion":"강사별 출강 확정","minutes":90,"category":"강사","caution":"대체 강사 연락처도 확인","materials":"강사 섭외 목록","budget":"강사료"},
-  {"id":"PRE-003","stage":"사전준비","day":"D-14","title":"교육장 및 장비 예약","description":"교육장, 좌석, 노트북, 프로젝터 등 교육 환경을 예약합니다.","required":true,"role":"운영지원","completion":"예약 확인서 수령","minutes":40,"category":"시설","caution":"교육장 사용 가능 시간 재확인","materials":"시설 예약서","budget":"시설운영비"},
-  {"id":"PRE-004","stage":"사전준비","day":"D-7","title":"교육 안내 및 준비물 공지","description":"참가자에게 교육 일정, 장소, 준비물을 안내합니다.","required":true,"role":"교육담당","completion":"안내문 발송 및 발송 기록 보관","minutes":30,"category":"안내","caution":"개인정보는 별도 시스템에서만 확인","materials":"교육 안내문","budget":""},
-  {"id":"PRE-005","stage":"사전준비","day":"D-3","title":"교재 및 실습자료 최종 점검","description":"교재와 실습자료의 최신본을 확인하고 교육장 배포 수량을 준비합니다.","required":true,"role":"콘텐츠담당","completion":"자료 최종본 및 수량 확인","minutes":90,"category":"콘텐츠","caution":"저작권 및 외부 링크 점검","materials":"교재 체크리스트","budget":"교재제작비"},
-  {"id":"PRE-006","stage":"사전준비","day":"D-1","title":"교육장 사전 세팅","description":"좌석 배치와 장비 작동 여부를 현장에서 점검합니다.","required":false,"role":"운영지원","completion":"세팅 완료 사진 또는 점검표 확인","minutes":60,"category":"시설","caution":"예비 케이블과 충전기 준비","materials":"교육장 점검표","budget":"시설운영비"},
-  {"id":"OPS-001","stage":"교육운영","day":"교육 1일차","title":"입과 및 출결 확인","description":"교육 시작 전 참석 여부를 확인하고 오리엔테이션을 진행합니다.","required":true,"role":"교육담당","completion":"출결 현황 확인 및 오리엔테이션 완료","minutes":45,"category":"출결","caution":"출결 원본에 개인정보를 남기지 않음","materials":"출결 체크리스트","budget":""},
-  {"id":"OPS-002","stage":"교육운영","day":"교육 1일차","title":"교육 목표 및 일정 안내","description":"교육 목표, 평가 방식, 문의 채널을 참가자에게 안내합니다.","required":true,"role":"교육담당","completion":"안내 슬라이드 진행 완료","minutes":30,"category":"오리엔테이션","caution":"질의응답 시간을 확보","materials":"오리엔테이션 자료","budget":""},
-  {"id":"OPS-003","stage":"교육운영","day":"교육 2일차","title":"기초 취재 실습 운영","description":"취재 기초 이론과 실습을 운영하고 현장 질문을 수집합니다.","required":true,"role":"강사","completion":"실습 진행 및 과제 안내 완료","minutes":240,"category":"교육","caution":"실습 결과물 외 개인정보 수집 금지","materials":"취재 실습지","budget":"강사료"},
-  {"id":"OPS-004","stage":"교육운영","day":"교육 5일차","title":"중간 운영 점검 및 보완","description":"교육 진행률과 현장 이슈를 점검하고 남은 일정에 반영합니다.","required":true,"role":"교육담당","completion":"중간 점검 기록 및 조치사항 등록","minutes":45,"category":"점검","caution":"미해결 이슈 담당자 지정","materials":"중간 점검표","budget":""},
-  {"id":"OPS-005","stage":"교육운영","day":"교육 8일차","title":"최종 과제 제출 현황 확인","description":"최종 과제 제출 여부를 확인하고 미제출자 안내를 진행합니다.","required":true,"role":"교육담당","completion":"제출 현황 및 안내 완료","minutes":60,"category":"평가","caution":"과제 파일에 민감정보 포함 여부 확인","materials":"과제 제출 현황표","budget":""},
-  {"id":"OPS-006","stage":"교육운영","day":"교육 10일차","title":"수료 안내 및 만족도 조사","description":"수료 기준을 안내하고 교육 만족도 조사를 실시합니다.","required":true,"role":"교육담당","completion":"수료 안내 및 설문 링크 발송","minutes":45,"category":"수료","caution":"설문 응답 원문은 별도 보관 정책 준수","materials":"만족도 설문","budget":""},
-  {"id":"END-001","stage":"종료처리","day":"종료 당일","title":"교육장 원상복구 및 반납","description":"교육장 장비와 비품을 확인한 뒤 원상복구하고 반납합니다.","required":true,"role":"운영지원","completion":"시설 담당자 반납 확인","minutes":40,"category":"시설","caution":"분실 및 파손 여부 기록","materials":"반납 체크리스트","budget":"시설운영비"},
-  {"id":"END-003","stage":"종료처리","day":"종료 +1일","title":"운영 기록 및 산출물 정리","description":"출결, 점검표, 설문 결과 등 운영 산출물을 정리합니다.","required":true,"role":"교육담당","completion":"공용 폴더에 산출물 정리 완료","minutes":90,"category":"기록","caution":"개인정보 포함 파일은 저장하지 않음","materials":"산출물 목록","budget":""},
-  {"id":"BUD-001","stage":"정산","day":"종료 +3일","title":"강사료 지급 서류 확인","description":"강사료 지급에 필요한 증빙과 내부 결재 상태를 확인합니다.","required":true,"role":"정산담당","completion":"지급 서류 검토 및 결재 상신","minutes":60,"category":"지급","caution":"계좌번호는 정산 시스템에서만 처리","materials":"지급 서류 체크리스트","budget":"강사료"},
-  {"id":"BUD-002","stage":"정산","day":"종료 +5일","title":"교육비 집행 내역 정리","description":"예산항목별 집행액과 잔액을 정리하고 증빙을 대조합니다.","required":true,"role":"정산담당","completion":"집행 내역과 증빙 대조 완료","minutes":120,"category":"예산","caution":"원 단위 반올림 기준 통일","materials":"예산 집행표","budget":"교육운영비"},
-  {"id":"BUD-003","stage":"정산","day":"종료 +7일","title":"정산 결과 내부 확인","description":"정산 결과를 담당 부서와 확인하고 수정사항을 반영합니다.","required":true,"role":"교육담당","completion":"정산 결과 확인 및 보완 완료","minutes":45,"category":"검토","caution":"결재 전 누락 증빙 재확인","materials":"정산 검토표","budget":""},
-  {"id":"RPT-001","stage":"결과보고","day":"종료 +7일","title":"교육 결과 데이터 집계","description":"참여 현황, 수료 현황, 만족도 등 결과 지표를 집계합니다.","required":true,"role":"교육담당","completion":"결과 지표 집계표 작성","minutes":90,"category":"분석","caution":"식별 가능한 교육생 정보는 포함하지 않음","materials":"결과 집계 양식","budget":""},
-  {"id":"RPT-002","stage":"결과보고","day":"종료 +10일","title":"교육 결과보고서 작성","description":"운영 결과와 개선사항을 정리해 결과보고서를 작성합니다.","required":true,"role":"교육담당","completion":"결과보고서 초안 작성 및 검토","minutes":180,"category":"보고","caution":"수치의 기준일과 산출근거 명시","materials":"결과보고서 양식","budget":""},
-  {"id":"RPT-003","stage":"결과보고","day":"종료 +14일","title":"개선과제 및 다음 회차 인계","description":"운영 회고를 바탕으로 개선과제와 다음 담당자 인계사항을 남깁니다.","required":true,"role":"교육담당","completion":"개선과제 및 인계 문서 공유","minutes":90,"category":"인계","caution":"개인정보가 포함된 메모는 작성하지 않음","materials":"인계 체크리스트","budget":""}
+  {
+    "id": "PRE-001",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -30,
+      "label": "D-30"
+    },
+    "category": "기획",
+    "title": "교육 일정 및 운영안 확정",
+    "description": "교육 기간, 장소, 주요 커리큘럼을 확정하고 내부 운영안을 공유합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 60,
+    "completionCriteria": [
+      "최종 운영안 승인 및 공유"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "교육 운영안",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "변경사항은 관련 부서에 즉시 공지",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "교육운영비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "기획",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 110
+  },
+  {
+    "id": "PRE-002",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -21,
+      "label": "D-21"
+    },
+    "category": "강사",
+    "title": "강사 섭외 및 출강 일정 확인",
+    "description": "과목별 강사 섭외 현황과 출강 가능 일정을 확인합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 90,
+    "completionCriteria": [
+      "강사별 출강 확정"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "강사 섭외 목록",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "대체 강사 연락처도 확인",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "강사료"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "강사",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 120
+  },
+  {
+    "id": "PRE-003",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -14,
+      "label": "D-14"
+    },
+    "category": "시설",
+    "title": "교육장 및 장비 예약",
+    "description": "교육장, 좌석, 노트북, 프로젝터 등 교육 환경을 예약합니다.",
+    "required": true,
+    "assigneeRole": "운영지원",
+    "estimatedMinutes": 40,
+    "completionCriteria": [
+      "예약 확인서 수령"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "시설 예약서",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "교육장 사용 가능 시간 재확인",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "시설운영비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "시설",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 130
+  },
+  {
+    "id": "PRE-004",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -7,
+      "label": "D-7"
+    },
+    "category": "안내",
+    "title": "교육 안내 및 준비물 공지",
+    "description": "참가자에게 교육 일정, 장소, 준비물을 안내합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 30,
+    "completionCriteria": [
+      "안내문 발송 및 발송 기록 보관"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "교육 안내문",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "개인정보는 별도 시스템에서만 확인",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "안내",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 140
+  },
+  {
+    "id": "PRE-005",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -3,
+      "label": "D-3"
+    },
+    "category": "교육과정",
+    "title": "교재 및 실습자료 최종 점검",
+    "description": "교재와 실습자료의 최신본을 확인하고 교육장 배포 수량을 준비합니다.",
+    "required": true,
+    "assigneeRole": "콘텐츠담당",
+    "estimatedMinutes": 90,
+    "completionCriteria": [
+      "자료 최종본 및 수량 확인"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "교재 체크리스트",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "저작권 및 외부 링크 점검",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "교재제작비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "콘텐츠",
+      "교육과정",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 150
+  },
+  {
+    "id": "PRE-006",
+    "phase": "사전준비",
+    "timing": {
+      "type": "D_DAY",
+      "value": -1,
+      "label": "D-1"
+    },
+    "category": "시설",
+    "title": "교육장 사전 세팅",
+    "description": "좌석 배치와 장비 작동 여부를 현장에서 점검합니다.",
+    "required": false,
+    "assigneeRole": "운영지원",
+    "estimatedMinutes": 60,
+    "completionCriteria": [
+      "세팅 완료 사진 또는 점검표 확인"
+    ],
+    "riskLevel": "LOW",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "교육장 점검표",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "예비 케이블과 충전기 준비",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "시설운영비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "시설",
+      "사전준비"
+    ],
+    "active": true,
+    "sortOrder": 160
+  },
+  {
+    "id": "OPS-001",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 1,
+      "label": "교육 1일차"
+    },
+    "category": "교육생",
+    "title": "입과 및 출결 확인",
+    "description": "교육 시작 전 참석 여부를 확인하고 오리엔테이션을 진행합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 45,
+    "completionCriteria": [
+      "출결 현황 확인 및 오리엔테이션 완료"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "출결 체크리스트",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "출결 원본에 개인정보를 남기지 않음",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "출결",
+      "교육생",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 270
+  },
+  {
+    "id": "OPS-002",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 1,
+      "label": "교육 1일차"
+    },
+    "category": "교육과정",
+    "title": "교육 목표 및 일정 안내",
+    "description": "교육 목표, 평가 방식, 문의 채널을 참가자에게 안내합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 30,
+    "completionCriteria": [
+      "안내 슬라이드 진행 완료"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "오리엔테이션 자료",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "질의응답 시간을 확보",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "오리엔테이션",
+      "교육과정",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 280
+  },
+  {
+    "id": "OPS-003",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 2,
+      "label": "교육 2일차"
+    },
+    "category": "교육과정",
+    "title": "기초 취재 실습 운영",
+    "description": "취재 기초 이론과 실습을 운영하고 현장 질문을 수집합니다.",
+    "required": true,
+    "assigneeRole": "강사",
+    "estimatedMinutes": 240,
+    "completionCriteria": [
+      "실습 진행 및 과제 안내 완료"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "취재 실습지",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "실습 결과물 외 개인정보 수집 금지",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "강사료"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "교육",
+      "교육과정",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 290
+  },
+  {
+    "id": "OPS-004",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 5,
+      "label": "교육 5일차"
+    },
+    "category": "행정",
+    "title": "중간 운영 점검 및 보완",
+    "description": "교육 진행률과 현장 이슈를 점검하고 남은 일정에 반영합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 45,
+    "completionCriteria": [
+      "중간 점검 기록 및 조치사항 등록"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "중간 점검표",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "미해결 이슈 담당자 지정",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "점검",
+      "행정",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 300
+  },
+  {
+    "id": "OPS-005",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 8,
+      "label": "교육 8일차"
+    },
+    "category": "성과",
+    "title": "최종 과제 제출 현황 확인",
+    "description": "최종 과제 제출 여부를 확인하고 미제출자 안내를 진행합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 60,
+    "completionCriteria": [
+      "제출 현황 및 안내 완료"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "과제 제출 현황표",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "과제 파일에 민감정보 포함 여부 확인",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "평가",
+      "성과",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 310
+  },
+  {
+    "id": "OPS-006",
+    "phase": "교육운영",
+    "timing": {
+      "type": "TRAINING_DAY",
+      "value": 10,
+      "label": "교육 10일차"
+    },
+    "category": "교육과정",
+    "title": "수료 안내 및 만족도 조사",
+    "description": "수료 기준을 안내하고 교육 만족도 조사를 실시합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 45,
+    "completionCriteria": [
+      "수료 안내 및 설문 링크 발송"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "만족도 설문",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "설문 응답 원문은 별도 보관 정책 준수",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "수료",
+      "교육과정",
+      "교육운영"
+    ],
+    "active": true,
+    "sortOrder": 320
+  },
+  {
+    "id": "CLS-001",
+    "phase": "종료처리",
+    "timing": {
+      "type": "END_DAY",
+      "value": 0,
+      "label": "종료 당일"
+    },
+    "category": "시설",
+    "title": "교육장 원상복구 및 반납",
+    "description": "교육장 장비와 비품을 확인한 뒤 원상복구하고 반납합니다.",
+    "required": true,
+    "assigneeRole": "운영지원",
+    "estimatedMinutes": 40,
+    "completionCriteria": [
+      "시설 담당자 반납 확인"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "반납 체크리스트",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "분실 및 파손 여부 기록",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "시설운영비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "시설",
+      "종료처리"
+    ],
+    "active": true,
+    "sortOrder": 430
+  },
+  {
+    "id": "CLS-002",
+    "phase": "종료처리",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 1,
+      "label": "종료 +1일"
+    },
+    "category": "행정",
+    "title": "운영 기록 및 산출물 정리",
+    "description": "출결, 점검표, 설문 결과 등 운영 산출물을 정리합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 90,
+    "completionCriteria": [
+      "공용 폴더에 산출물 정리 완료"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "산출물 목록",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "개인정보 포함 파일은 저장하지 않음",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "기록",
+      "행정",
+      "종료처리"
+    ],
+    "active": true,
+    "sortOrder": 440
+  },
+  {
+    "id": "FIN-001",
+    "phase": "정산",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 3,
+      "label": "종료 +3일"
+    },
+    "category": "정산",
+    "title": "강사료 지급 서류 확인",
+    "description": "강사료 지급에 필요한 증빙과 내부 결재 상태를 확인합니다.",
+    "required": true,
+    "assigneeRole": "정산담당",
+    "estimatedMinutes": 60,
+    "completionCriteria": [
+      "지급 서류 검토 및 결재 상신"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "지급 서류 체크리스트",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "계좌번호는 정산 시스템에서만 처리",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "강사료"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "지급",
+      "정산"
+    ],
+    "active": true,
+    "sortOrder": 550
+  },
+  {
+    "id": "FIN-002",
+    "phase": "정산",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 5,
+      "label": "종료 +5일"
+    },
+    "category": "예산",
+    "title": "교육비 집행 내역 정리",
+    "description": "예산항목별 집행액과 잔액을 정리하고 증빙을 대조합니다.",
+    "required": true,
+    "assigneeRole": "정산담당",
+    "estimatedMinutes": 120,
+    "completionCriteria": [
+      "집행 내역과 증빙 대조 완료"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "예산 집행표",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "원 단위 반올림 기준 통일",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": true,
+      "category": "교육운영비"
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "예산",
+      "정산"
+    ],
+    "active": true,
+    "sortOrder": 560
+  },
+  {
+    "id": "FIN-003",
+    "phase": "정산",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 7,
+      "label": "종료 +7일"
+    },
+    "category": "행정",
+    "title": "정산 결과 내부 확인",
+    "description": "정산 결과를 담당 부서와 확인하고 수정사항을 반영합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 45,
+    "completionCriteria": [
+      "정산 결과 확인 및 보완 완료"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "정산 검토표",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "결재 전 누락 증빙 재확인",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "검토",
+      "행정",
+      "정산"
+    ],
+    "active": true,
+    "sortOrder": 570
+  },
+  {
+    "id": "RPT-001",
+    "phase": "결과보고",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 7,
+      "label": "종료 +7일"
+    },
+    "category": "성과",
+    "title": "교육 결과 데이터 집계",
+    "description": "참여 현황, 수료 현황, 만족도 등 결과 지표를 집계합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 90,
+    "completionCriteria": [
+      "결과 지표 집계표 작성"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "결과 집계 양식",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "식별 가능한 교육생 정보는 포함하지 않음",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "분석",
+      "성과",
+      "결과보고"
+    ],
+    "active": true,
+    "sortOrder": 680
+  },
+  {
+    "id": "RPT-002",
+    "phase": "결과보고",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 10,
+      "label": "종료 +10일"
+    },
+    "category": "결과보고",
+    "title": "교육 결과보고서 작성",
+    "description": "운영 결과와 개선사항을 정리해 결과보고서를 작성합니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 180,
+    "completionCriteria": [
+      "결과보고서 초안 작성 및 검토"
+    ],
+    "riskLevel": "MEDIUM",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "결과보고서 양식",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "수치의 기준일과 산출근거 명시",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "보고",
+      "결과보고"
+    ],
+    "active": true,
+    "sortOrder": 690
+  },
+  {
+    "id": "RPT-003",
+    "phase": "결과보고",
+    "timing": {
+      "type": "AFTER_END",
+      "value": 14,
+      "label": "종료 +14일"
+    },
+    "category": "행정",
+    "title": "개선과제 및 다음 회차 인계",
+    "description": "운영 회고를 바탕으로 개선과제와 다음 담당자 인계사항을 남깁니다.",
+    "required": true,
+    "assigneeRole": "교육담당",
+    "estimatedMinutes": 90,
+    "completionCriteria": [
+      "개선과제 및 인계 문서 공유"
+    ],
+    "riskLevel": "HIGH",
+    "dependencies": [],
+    "documents": [
+      {
+        "name": "인계 체크리스트",
+        "required": true
+      }
+    ],
+    "handover": {
+      "caution": "개인정보가 포함된 메모는 작성하지 않음",
+      "knowhow": "",
+      "previousIssue": ""
+    },
+    "budget": {
+      "related": false,
+      "category": null
+    },
+    "repeat": {
+      "enabled": false,
+      "rule": null
+    },
+    "aiCheck": {
+      "enabled": false,
+      "keywords": []
+    },
+    "tags": [
+      "인계",
+      "행정",
+      "결과보고"
+    ],
+    "active": true,
+    "sortOrder": 700
+  }
 ]

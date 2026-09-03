@@ -15,7 +15,10 @@
           <h1>수습기자 기본교육 운영 미니리더</h1>
           <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
         </div>
-        <div class="header-status"><span class="status-dot"></span>브라우저에 안전하게 저장 중</div>
+        <div class="topbar-actions">
+          <button id="settings-button" class="settings-button" type="button">교육일정 설정</button>
+          <div class="header-status"><span class="status-dot"></span>브라우저에 안전하게 저장 중</div>
+        </div>
       </header>
 
       <main>
@@ -25,6 +28,16 @@
           <article class="summary-card summary-progress"><div><span class="card-label">진행</span><strong id="progress-count">0</strong></div><span class="card-icon">RUN</span></article>
           <article class="summary-card summary-pending"><div><span class="card-label">미착수</span><strong id="pending-count">0</strong></div><span class="card-icon">NEXT</span></article>
           <article class="progress-card"><div class="progress-heading"><span class="card-label">전체 진행률</span><strong id="progress-percent">0%</strong></div><div class="progress-track"><span id="overall-progress"></span></div><p id="progress-caption">첫 업무를 완료하면 진행률이 표시됩니다.</p></article>
+        </section>
+
+        <section id="schedule-summary" class="schedule-summary" aria-label="교육 일정 요약">
+          <div class="schedule-summary-heading"><div><p class="eyebrow">SCHEDULE</p><h2 id="schedule-training-name">교육일정 미설정</h2></div><p id="schedule-period">교육일정을 설정하면 실제 마감일을 확인할 수 있습니다.</p></div>
+          <div class="schedule-metrics">
+            <article><span>교육기간</span><strong id="schedule-period-value">미설정</strong></article>
+            <article><span>오늘 업무</span><strong id="schedule-today-count">0</strong></article>
+            <article><span>마감임박</span><strong id="schedule-due-soon-count">0</strong></article>
+            <article><span>기한초과</span><strong id="schedule-overdue-count">0</strong></article>
+          </div>
         </section>
 
         <section class="workspace">
@@ -46,11 +59,23 @@
               </div>
               <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="업무명, 설명, 주의사항 검색" /></label>
             </div>
-            <div class="sub-toolbar"><p id="result-summary">업무를 불러오는 중입니다.</p><div class="quick-filters"><button class="quick-filter" data-filter="required">필수만</button><button class="quick-filter" data-filter="incomplete">미완료</button><button class="quick-filter" data-filter="urgent">마감임박</button><select id="sort-select" aria-label="업무 정렬"><option value="default">기준일 순</option><option value="status">상태 순</option><option value="category">카테고리 순</option></select></div></div>
+            <div class="sub-toolbar"><p id="result-summary">업무를 불러오는 중입니다.</p><div class="quick-filters"><button class="quick-filter" data-filter="required">필수만</button><button class="quick-filter" data-filter="incomplete">미완료</button><button class="quick-filter" data-filter="today">오늘</button><button class="quick-filter" data-filter="week">이번 주</button><button class="quick-filter" data-filter="urgent">마감임박</button><button class="quick-filter" data-filter="overdue">기한초과</button><select id="sort-select" aria-label="업무 정렬"><option value="default">기준일 순</option><option value="due-date">실제 마감일 빠른 순</option><option value="risk">위험도 순</option><option value="status">상태 순</option><option value="category">카테고리 순</option></select></div></div>
             <div id="task-list" class="task-list" aria-live="polite"></div>
           </section>
         </section>
       </main>
+      <section id="settings-panel" class="settings-panel" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="settings-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">PROJECT SETTINGS</p><h2 id="settings-title">교육일정 설정</h2></div><button id="settings-close" class="settings-close" type="button" aria-label="설정 닫기">×</button></div>
+          <form id="settings-form">
+            <label>교육명<input id="training-name" name="trainingName" type="text" maxlength="100" placeholder="예: 2026년 제1기 수습기자 기본교육" /></label>
+            <div class="settings-date-grid"><label>교육 시작일<input id="training-start-date" name="trainingStartDate" type="date" /></label><label>교육 종료일<input id="training-end-date" name="trainingEndDate" type="date" /></label></div>
+            <label>마감임박 판단 기준<input id="due-soon-days" name="dueSoonDays" type="number" min="0" max="365" step="1" value="3" /><small>마감일까지 남은 일수가 이 기준 이하이면 마감임박으로 표시합니다.</small></label>
+            <p id="settings-error" class="settings-error" role="alert"></p>
+            <div class="settings-actions"><button id="settings-cancel" class="settings-cancel" type="button">취소</button><button class="settings-save" type="submit">저장</button></div>
+          </form>
+        </div>
+      </section>
       <footer><span>수습기자 교육운영 미니리더</span><span>샘플 데이터 20건 · 개인정보 미수집</span></footer>
     </div>
     <script type="module" src="js/app.js"></script>
