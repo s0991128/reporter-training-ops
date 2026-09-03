@@ -20,8 +20,10 @@ const state = {
     'PRE-002': { status: 'IN_PROGRESS', completedAt: null, memo: '' }
   },
   checklist: {
-    'task-three': { status: 'IN_PROGRESS', completedAt: null, memo: '회신 대기', checks: [true, false, false] }
+    'task-three': { status: 'IN_PROGRESS', completedAt: null, updatedAt: '2026-09-03T01:30:00.000Z', memo: '회신 대기', checks: [true, false, false] }
   },
+  checklistHistory: [{ taskKey:'task-three', type:'MEMO_UPDATED', at:'2026-09-03T01:30:00.000Z' }],
+  handover: { note:'다음 담당자에게 전달할 메모', updatedAt:'2026-09-03T01:31:00.000Z' },
   budget: {
     plans: { LECTURER: 8_000_000 },
     transactions: [{ id: 'TX-0001', categoryId: 'LECTURER', amount: 800_000, status: 'PAID', date: '2026-09-03', description: '강의 운영비', taskId: 'PRE-002', settlementStatus: 'PENDING', memo: '증빙 확인', createdAt: '2026-09-03T01:00:00.000Z', updatedAt: '2026-09-03T01:00:00.000Z' }]
@@ -35,6 +37,9 @@ assert.equal(backup.application, 'reporter-training-ops');
 assert.equal(backup.applicationVersion, APPLICATION_VERSION);
 assert.equal(backup.data.tasks['PRE-001'].title, undefined);
 assert.deepEqual(backup.data.checklist['task-three'].checks, [true, false, false]);
+assert.equal(backup.data.checklist['task-three'].updatedAt, '2026-09-03T01:30:00.000Z');
+assert.equal(backup.data.checklistHistory[0].type, 'MEMO_UPDATED');
+assert.equal(backup.data.handover.note, '다음 담당자에게 전달할 메모');
 assert.equal(validateBackup(backup, tasks).valid, true);
 const preview = previewBackup(backup, tasks);
 assert.equal(preview.valid, true);
@@ -67,6 +72,10 @@ assert.match(exported.filename, /^reporter-training-backup-\d{4}-\d{2}-\d{2}-\d{
 const restored = restoreBackup(backup, tasks);
 assert.equal(restored.success, true);
 assert.deepEqual(restored.state.checklist['task-three'].checks, [true, false, false]);
+assert.equal(restored.state.version, 6);
+assert.equal(restored.state.checklist['task-three'].updatedAt, '2026-09-03T01:30:00.000Z');
+assert.equal(restored.state.checklistHistory[0].type, 'MEMO_UPDATED');
+assert.equal(restored.state.handover.note, '다음 담당자에게 전달할 메모');
 assert.equal(restored.state.tasks['PRE-001'].memo, '인수인계 메모');
 const reset = resetAllUserData();
 assert.deepEqual(reset.checklist, {});
@@ -83,5 +92,12 @@ assert.equal(validateBackup({ ...backup, data: { ...backup.data, accountNumber: 
 
 const oldBackup = { ...backup, data: { version: 3, projectId: 'reporter-training-ops', settings: state.settings, tasks: state.tasks } };
 assert.equal(validateBackup(oldBackup, tasks).valid, true);
+const oldV10Backup = { ...backup, applicationVersion:'0.10', data: { ...state, version:5, checklist:{ 'task-three': { status:'IN_PROGRESS', completedAt:null, memo:'회신 대기', checks:[true, false, false] } }, checklistHistory:undefined, handover:undefined } };
+assert.equal(validateBackup(oldV10Backup, tasks).valid, true);
+const restoredOldV10 = restoreBackup(oldV10Backup, tasks);
+assert.equal(restoredOldV10.success, true);
+assert.equal(restoredOldV10.state.checklist['task-three'].updatedAt, null);
+assert.deepEqual(restoredOldV10.state.checklistHistory, []);
+assert.deepEqual(restoredOldV10.state.handover, { note:'', updatedAt:null });
 
 console.log('backup.test.js: PASS');

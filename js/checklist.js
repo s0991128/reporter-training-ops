@@ -151,10 +151,20 @@ export function getChecklistStats(items = [], state) {
 }
 
 export function getCurrentChecklistSection(groups = [], state) {
-  const inProgress = groups.find(group => getChecklistStats(group.items, state).progress > 0);
-  if (inProgress) return inProgress.section;
-  const pending = groups.find(group => getChecklistStats(group.items, state).pending > 0);
-  return pending?.section || (groups.length ? '모든 구간 완료' : '미착수');
+  const firstIncompleteIndex = groups.findIndex(group => {
+    const stats = getChecklistStats(group.items, state);
+    return stats.pending > 0 || stats.progress > 0;
+  });
+  if (firstIncompleteIndex < 0) return groups.length ? '모든 구간 완료' : '미착수';
+  const laterTouchedIndex = groups.reduce((latestIndex, group, index) => {
+    if (index <= firstIncompleteIndex) return latestIndex;
+    const touched = (group.items || []).some(item => {
+      const itemState = getChecklistItemState(item, state);
+      return itemState.status === CHECKLIST_STATUS.COMPLETED || itemState.status === CHECKLIST_STATUS.IN_PROGRESS || Boolean(itemState.memo);
+    });
+    return touched ? index : latestIndex;
+  }, -1);
+  return groups[laterTouchedIndex >= 0 ? laterTouchedIndex : firstIncompleteIndex]?.section || '미착수';
 }
 
 export function findChecklistSensitivePatterns(value = '') {

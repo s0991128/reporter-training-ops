@@ -1,6 +1,6 @@
 # 수습기자 기본교육 운영 미니리더
 
-현재 버전은 `v0.10`입니다. 실제 운영 체크리스트 117건은 `업무목록.csv`를 정본으로 사용하고, 기존 `data/tasks.json` 업무 마스터·일정·경고·예산·정산·백업·AI 기능과 분리해 관리합니다. AI 정밀분석은 키를 서버에만 둔 Node.js 서버를 통해 OpenAI Responses API와 연결합니다. 현재 `data/tasks.json`에는 검증용 샘플 20건이 있으며 체크리스트 CSV와 임의로 합치지 않습니다.
+현재 버전은 `v0.11`입니다. 실제 운영 체크리스트 117건은 `업무목록.csv`를 정본으로 사용하고, 기존 `data/tasks.json` 업무 마스터·일정·경고·예산·정산·백업·AI 기능과 분리해 관리합니다. 담당자 교체 시에는 `인수인계` 화면에서 현재 진행구간, 우선 확인 업무, 메모, 최근 처리, 구간별 현황을 확인하고 읽기용 HTML 보고서를 만들 수 있습니다. AI 정밀분석은 키를 서버에만 둔 Node.js 서버를 통해 OpenAI Responses API와 연결합니다. 현재 `data/tasks.json`에는 검증용 샘플 20건이 있으며 체크리스트 CSV와 임의로 합치지 않습니다.
 
 ## 실행 방법
 
@@ -35,9 +35,11 @@ data/tasks.json            구조화 업무 마스터 원본
 data/tasks.schema.json     업무 JSON 구조
 js/app.js                  화면 이벤트와 상태 연결
 js/tasks.js                운영 업무 필터·카드 렌더링
-js/storage.js              localStorage v5 상태·마이그레이션
+js/storage.js              localStorage v6 상태·마이그레이션
 js/checklist.js            체크리스트 CSV 로더·검증·상태 계산
 js/checklist-ui.js         체크리스트 화면 렌더링
+js/handover.js             인수인계 요약·우선순위·최근 이력 계산
+js/handover-export.js      읽기용 self-contained HTML 보고서 생성
 js/schedule.js             일정 계산
 js/alerts.js               의존성·일정·위험 경고
 js/budget*.js              예산·집행·정산
@@ -56,7 +58,18 @@ server/config.js            서버 환경변수·제한값 관리
 Dockerfile                 Node.js 서버 배포 이미지
 docs/                      기능·데이터 규격
 tests/                     순수 로직 회귀 테스트
+docs/HANDOVER_SPEC.md      인수인계 모드·데이터 계약
 ```
+
+## v0.11 담당자 인수인계 모드
+
+상단의 `인수인계`에서 업무목록.csv 117건을 인수인계 관점으로 재구성합니다. 현재 진행구간은 적용 가능한 업무 중 처음 미완료 구간을 기준으로 하되, 뒤 구간에 이미 완료·진행중 업무가 있으면 가장 멀리 진행된 구간을 표시하고 이전 구간 미완료 경고를 함께 보여줍니다. `NOT_APPLICABLE`은 진행률과 미완료 계산에서 제외합니다.
+
+`먼저 확인할 업무`는 이전 구간 미완료, 진행중, 메모가 있는 미완료, 현재 구간 미완료, 다음 업무 순으로 중복 없이 표시합니다. 업무별 `updatedAt`을 저장하며 상태·세부 체크·메모 변경은 최대 최근 200건의 `checklistHistory`로 기록합니다. 메모 원문은 이력에 복제하지 않습니다.
+
+`다음 담당자에게 남길 메모`는 최대 2,000자로 저장하고 개인정보 형식을 차단합니다. `인수인계 보고서 만들기`는 서버 호출 없이 현재 상태를 self-contained HTML로 생성합니다. HTML은 읽기 전용 문서이며 다시 가져오지 않습니다. 데이터 이동·복원은 기존 JSON 운영데이터 백업을 사용합니다.
+
+저장 데이터는 localStorage v5에서 v6으로 자동 migration됩니다. v0.10 백업처럼 `updatedAt`, `checklistHistory`, `handover`가 없는 JSON도 정상 복원되며 새 필드는 기본값으로 보완됩니다. 체크리스트 원본의 행 수·key 수·checksum을 보고서에 함께 표시합니다.
 
 ## v0.10 실제 운영 체크리스트
 
@@ -98,4 +111,4 @@ Node.js가 설치되어 있다면 다음과 같이 실행합니다.
 npm test
 ```
 
-테스트에는 업무목록.csv 117건·16구간·구간별 건수·quoted CSV·중복 문장/고유 key·일반 체크·3회 체크·해당없음·localStorage migration·백업/복원 회귀 검증이 포함됩니다.
+테스트에는 업무목록.csv 117건·16구간·구간별 건수·quoted CSV·중복 문장/고유 key·일반 체크·3회 체크·해당없음·localStorage migration·updatedAt·checklistHistory 200건 제한·인수인계 우선순위·HTML 보고서·백업/복원 회귀 검증이 포함됩니다.

@@ -74,10 +74,10 @@ const originalLocalStorage = globalThis.localStorage;
 const storedValues = new Map([['trainee-reporter-training-state-v3', JSON.stringify({ version:3, projectId:'reporter-training-ops', settings:{ trainingName:'이전 교육' }, tasks:{ 'PRE-001':{ completed:true, completedAt:'2026. 9. 1.', memo:'이전 메모' } } })]]);
 globalThis.localStorage = { getItem(key) { return storedValues.get(key) || null; }, setItem(key, value) { storedValues.set(key, value); } };
 const migrated = loadState();
-assert.equal(migrated.version, 5);
+assert.equal(migrated.version, 6);
 assert.equal(migrated.tasks['PRE-001'].status, 'COMPLETED');
 assert.equal(migrated.tasks['PRE-001'].memo, '이전 메모');
-assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v5')).tasks['PRE-001'].title, undefined);
+assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).tasks['PRE-001'].title, undefined);
 globalThis.localStorage = originalLocalStorage;
 
 const preview = (await import('../js/task-admin.js')).buildCsvImportPreview(csv);
