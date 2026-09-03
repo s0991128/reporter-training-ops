@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { validateTasks } from '../js/validator.js';
+import { getAlertSummary, getDependencyConfirmationMessage, getPhaseWarnings, getTaskAlerts } from '../js/alerts.js';
+import { getTaskState, TASK_STATUS } from '../js/storage.js';
+
+const tasks = JSON.parse(await readFile(new URL('../data/tasks.json', import.meta.url), 'utf8'));
+const settings = { trainingName:'', trainingStartDate:'2026-09-10', trainingEndDate:'2026-09-19', dueSoonDays:3 };
+const today = new Date(2026, 8, 3);
+const state = { version:3, projectId:'reporter-training-ops', settings, tasks:{} };
+const task = id => tasks.find(item => item.id === id);
+const taskState = id => getTaskState(state, id);
+const hasAlert = (id, type, customState = taskState(id), customSettings = settings) => getTaskAlerts(task(id), customState, tasks, state, customSettings, today).some(alert => alert.type === type);
+
+assert.equal(validateTasks(tasks).valid, true, 'sample tasks should pass validation');
+assert.equal(hasAlert('PRE-002', 'BLOCKED'), true, 'dependent task should be blocked');
+state.tasks['PRE-001'] = { status:TASK_STATUS.COMPLETED, completedAt:'2026-09-03T00:00:00.000Z', memo:'' };
+assert.equal(hasAlert('PRE-002', 'BLOCKED'), false, 'blocked alert should disappear after dependency completion');
+state.tasks['PRE-001'] = { status:TASK_STATUS.NOT_STARTED, completedAt:null, memo:'' };
+assert.equal(hasAlert('PRE-004', 'OVERDUE_REQUIRED', taskState('PRE-004'), { ...settings, trainingStartDate:'2026-08-01' }), true, 'overdue required alert should be created');
+assert.equal(hasAlert('PRE-004', 'DUE_SOON_CRITICAL'), true, 'due-soon critical alert should be created');
+assert.equal(hasAlert('PRE-004', 'OVERDUE_REQUIRED', { status:TASK_STATUS.NOT_STARTED }, { ...settings, trainingStartDate:'2026-08-01' }) && getTaskAlerts(task('PRE-004'), { status:TASK_STATUS.NOT_STARTED }, tasks, state, { ...settings, trainingStartDate:'2026-08-01' }, today).some(alert => alert.severity === 'CRITICAL'), true, 'high risk overdue required should be critical');
+assert.equal(getTaskAlerts(task('PRE-004'), { status:TASK_STATUS.COMPLETED }, tasks, state, settings, today).length, 0, 'completed tasks should have no normal alerts');
+state.tasks['OPS-001'] = { status:TASK_STATUS.IN_PROGRESS, completedAt:null, memo:'' };
+assert.equal(getPhaseWarnings(tasks, state, settings, today).some(alert => alert.type === 'PHASE_WARNING'), true, 'later phase in progress should produce a phase warning');
+assert.match(getDependencyConfirmationMessage([task('PRE-001')]), /그래도 완료 처리하시겠습니까\?/);
+const cycleTasks = tasks.slice(0, 3).map(item => ({ ...item, dependencies:item.id === 'PRE-001' ? ['PRE-002'] : item.id === 'PRE-002' ? ['PRE-003'] : ['PRE-001'] }));
+assert.equal(validateTasks(cycleTasks).errors.some(error => error.includes('Dependency cycle detected')), true, 'dependency cycle should be detected');
+const missingDependencyTasks = tasks.slice(0, 1).map(item => ({ ...item, dependencies:['PRE-999'] }));
+assert.equal(validateTasks(missingDependencyTasks).errors.some(error => error.includes("dependency 'PRE-999'")), true, 'missing dependency should be detected');
+const summary = getAlertSummary(tasks, state, settings, today);
+assert.equal(summary.blocked > 0, true, 'summary should count blocked tasks');
+console.log('alerts.test.js: PASS');

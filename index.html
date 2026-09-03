@@ -40,6 +40,17 @@
           </div>
         </section>
 
+        <section id="alert-summary" class="alert-summary" aria-label="주의 필요 업무 요약">
+          <div class="alert-summary-heading"><div><p class="eyebrow">ATTENTION</p><h2>주의 필요 <span id="alert-total-count">0</span></h2></div><p>선행업무, 일정, 위험도, 단계 흐름을 기준으로 확인이 필요한 업무입니다.</p></div>
+          <div class="alert-metrics">
+            <button class="alert-metric alert-metric-blocked" type="button" data-alert-filter="blocked"><span>선행업무 미완료</span><strong id="alert-blocked-count">0</strong></button>
+            <button class="alert-metric alert-metric-overdue" type="button" data-alert-filter="overdueRequired"><span>기한초과 필수업무</span><strong id="alert-overdue-count">0</strong></button>
+            <button class="alert-metric alert-metric-risk" type="button" data-alert-filter="highRisk"><span>고위험 미완료</span><strong id="alert-high-risk-count">0</strong></button>
+            <button class="alert-metric alert-metric-soon" type="button" data-alert-filter="dueSoonCritical"><span>마감임박 중요업무</span><strong id="alert-due-soon-count">0</strong></button>
+          </div>
+          <div class="priority-panel"><div class="priority-heading"><h3>우선 확인 업무</h3><span>최대 5건</span></div><ol id="priority-task-list"><li class="priority-empty">업무 경고를 계산하는 중입니다.</li></ol></div>
+        </section>
+
         <section class="workspace">
           <aside class="sidebar">
             <div class="section-heading"><div><p class="eyebrow">OVERVIEW</p><h2>단계별 현황</h2></div></div>
@@ -59,11 +70,18 @@
               </div>
               <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="업무명, 설명, 주의사항 검색" /></label>
             </div>
-            <div class="sub-toolbar"><p id="result-summary">업무를 불러오는 중입니다.</p><div class="quick-filters"><button class="quick-filter" data-filter="required">필수만</button><button class="quick-filter" data-filter="incomplete">미완료</button><button class="quick-filter" data-filter="today">오늘</button><button class="quick-filter" data-filter="week">이번 주</button><button class="quick-filter" data-filter="urgent">마감임박</button><button class="quick-filter" data-filter="overdue">기한초과</button><select id="sort-select" aria-label="업무 정렬"><option value="default">기준일 순</option><option value="due-date">실제 마감일 빠른 순</option><option value="risk">위험도 순</option><option value="status">상태 순</option><option value="category">카테고리 순</option></select></div></div>
+              <div class="sub-toolbar"><p id="result-summary">업무를 불러오는 중입니다.</p><div class="quick-filters"><button class="quick-filter" data-filter="required">필수만</button><button class="quick-filter" data-filter="incomplete">미완료</button><button class="quick-filter" data-filter="attention">주의 필요</button><button class="quick-filter" data-filter="today">오늘</button><button class="quick-filter" data-filter="week">이번 주</button><button class="quick-filter" data-filter="urgent">마감임박</button><button class="quick-filter" data-filter="overdue">기한초과</button><select id="sort-select" aria-label="업무 정렬"><option value="default">기준일 순</option><option value="due-date">실제 마감일 빠른 순</option><option value="risk">위험도 순</option><option value="status">상태 순</option><option value="category">카테고리 순</option></select></div></div>
             <div id="task-list" class="task-list" aria-live="polite"></div>
           </section>
         </section>
       </main>
+      <section id="dependency-confirmation" class="settings-panel dependency-confirmation" hidden role="dialog" aria-modal="true" aria-labelledby="dependency-confirm-title">
+        <div class="settings-dialog confirmation-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">DEPENDENCY CHECK</p><h2 id="dependency-confirm-title">완료 전 확인</h2></div><button id="dependency-confirm-close" class="settings-close" type="button" aria-label="확인창 닫기">×</button></div>
+          <p id="dependency-confirm-message" class="dependency-confirm-message"></p>
+          <div class="settings-actions"><button id="dependency-confirm-cancel" class="settings-cancel" type="button">취소</button><button id="dependency-confirm-proceed" class="settings-save" type="button">그래도 완료</button></div>
+        </div>
+      </section>
       <section id="settings-panel" class="settings-panel" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <div class="settings-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">PROJECT SETTINGS</p><h2 id="settings-title">교육일정 설정</h2></div><button id="settings-close" class="settings-close" type="button" aria-label="설정 닫기">×</button></div>

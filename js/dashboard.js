@@ -1,8 +1,10 @@
 import { getTaskState, TASK_STATUS } from './storage.js';
 import { getTasksByPhase } from './tasks.js';
 import { formatTaskDate, getDueSoonTasks, getOverdueTasks, getTasksDueToday } from './schedule.js';
+import { getAlertSummary } from './alerts.js';
+import { PHASES } from './constants.js';
 
-export const STAGES = ['사전준비', '교육운영', '종료처리', '정산', '결과보고'];
+export const STAGES = PHASES;
 
 export function getStats(tasks, state) {
   const complete = tasks.filter(task => getTaskState(state, task.id).status === TASK_STATUS.COMPLETED).length;
@@ -23,6 +25,21 @@ function renderScheduleSummary(tasks, state) {
   document.querySelector('#schedule-overdue-count').textContent = hasDates ? getOverdueTasks(tasks, state, settings).length : 0;
 }
 
+function renderAlertSummary(tasks, state) {
+  const summary = getAlertSummary(tasks, state, state.settings);
+  document.querySelector('#alert-total-count').textContent = summary.total;
+  document.querySelector('#alert-blocked-count').textContent = summary.blocked;
+  document.querySelector('#alert-overdue-count').textContent = summary.overdueRequired;
+  document.querySelector('#alert-high-risk-count').textContent = summary.highRisk;
+  document.querySelector('#alert-due-soon-count').textContent = summary.dueSoonCritical;
+  const priorityList = document.querySelector('#priority-task-list');
+  if (!summary.priorityTasks.length) {
+    priorityList.innerHTML = '<li class="priority-empty">현재 확인이 필요한 업무가 없습니다.</li>';
+    return;
+  }
+  priorityList.innerHTML = summary.priorityTasks.filter(item => item.task).map(item => `<li><button class="priority-task priority-${item.alert.severity.toLowerCase()}" type="button" data-task-id="${item.task.id}"><span class="priority-severity">${item.alert.severity}</span><span><b>${item.task.id}</b> ${item.task.title}</span><small>${item.alert.message}</small></button></li>`).join('');
+}
+
 export function renderDashboard(tasks, state) {
   const stats = getStats(tasks, state);
   const percent = stats.total ? Math.round((stats.complete / stats.total) * 100) : 0;
@@ -41,5 +58,6 @@ export function renderDashboard(tasks, state) {
     return `<button class="stage-item" data-stage="${stage}"><div class="stage-top"><strong>${stage}</strong><span>${done}/${stageTasks.length}</span></div><div class="stage-track"><span style="width:${stagePercent}%"></span></div></button>`;
   }).join('');
   renderScheduleSummary(tasks, state);
+  renderAlertSummary(tasks, state);
   return stats;
 }

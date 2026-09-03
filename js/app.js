@@ -2,6 +2,7 @@ import { DEFAULT_SETTINGS, getTaskState, loadState, saveSettings, TASK_STATUS } 
 import { renderDashboard } from './dashboard.js';
 import { calculateTaskDate } from './schedule.js';
 import { filterTasks, handleTaskEvent, loadTasks, renderTasks } from './tasks.js';
+import { getDependencyConfirmationMessage } from './alerts.js';
 
 const state = loadState();
 let tasks = [];
@@ -13,6 +14,9 @@ const taskList = document.querySelector('#task-list');
 const settingsPanel = document.querySelector('#settings-panel');
 const settingsForm = document.querySelector('#settings-form');
 const settingsError = document.querySelector('#settings-error');
+const dependencyConfirmation = document.querySelector('#dependency-confirmation');
+const dependencyConfirmMessage = document.querySelector('#dependency-confirm-message');
+let pendingCompletion = null;
 
 async function initializeTasks() {
   try {
@@ -41,12 +45,12 @@ function compareByRisk(first, second) {
 
 function render() {
   renderDashboard(tasks, state);
-  let visibleTasks = filterTasks(tasks, state, { stage:selectedStage, search, filters:activeFilters, settings:state.settings });
+  let visibleTasks = filterTasks(tasks, state, { stage:selectedStage, search, filters:activeFilters, settings:state.settings, allTasks:tasks });
   if (sort === 'due-date') visibleTasks = [...visibleTasks].sort(compareByDueDate);
   if (sort === 'risk') visibleTasks = [...visibleTasks].sort(compareByRisk);
   if (sort === 'status') visibleTasks = [...visibleTasks].sort((a, b) => Number(getTaskState(state, a.id).status === TASK_STATUS.COMPLETED) - Number(getTaskState(state, b.id).status === TASK_STATUS.COMPLETED));
   if (sort === 'category') visibleTasks = [...visibleTasks].sort((a, b) => a.category.localeCompare(b.category, 'ko'));
-  renderTasks(visibleTasks, state, taskList);
+  renderTasks(visibleTasks, state, taskList, tasks);
   document.querySelector('#result-summary').textContent = `${visibleTasks.length}개 업무 표시 중 · 전체 ${tasks.length}개`;
 }
 
@@ -76,6 +80,47 @@ function closeSettings() {
   settingsError.textContent = '';
 }
 
+function syncQuickFilters() {
+  document.querySelectorAll('.quick-filter').forEach(button => button.classList.toggle('active', activeFilters.has(button.dataset.filter)));
+  document.querySelectorAll('[data-alert-filter]').forEach(button => button.classList.toggle('active', activeFilters.has(button.dataset.alertFilter)));
+}
+
+function toggleFilter(filter) {
+  activeFilters.has(filter) ? activeFilters.delete(filter) : activeFilters.add(filter);
+  syncQuickFilters();
+  render();
+}
+
+function showDependencyConfirmation({ dependencies, proceed, input }) {
+  pendingCompletion = { proceed, input };
+  dependencyConfirmMessage.textContent = getDependencyConfirmationMessage(dependencies);
+  dependencyConfirmation.hidden = false;
+  document.querySelector('#dependency-confirm-proceed').focus();
+}
+
+function closeDependencyConfirmation(restore = true) {
+  if (restore && pendingCompletion?.input) pendingCompletion.input.checked = false;
+  pendingCompletion = null;
+  dependencyConfirmation.hidden = true;
+}
+
+function focusTask(taskId) {
+  selectedStage = '전체';
+  search = '';
+  sort = 'default';
+  activeFilters.clear();
+  document.querySelector('#search-input').value = '';
+  document.querySelector('#sort-select').value = sort;
+  document.querySelectorAll('.filter-tab').forEach(button => button.classList.toggle('active', button.dataset.stage === selectedStage));
+  syncQuickFilters();
+  render();
+  window.setTimeout(() => {
+    const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+    card?.scrollIntoView({ behavior:'smooth', block:'center' });
+    card?.querySelector('h3')?.focus?.();
+  }, 0);
+}
+
 document.querySelector('.filter-tabs').addEventListener('click', event => { const button = event.target.closest('[data-stage]'); if (button) setStage(button.dataset.stage); });
 document.querySelector('#stage-progress').addEventListener('click', event => { const button = event.target.closest('[data-stage]'); if (button) setStage(button.dataset.stage); });
 document.querySelector('#search-input').addEventListener('input', event => { search = event.target.value; render(); });
@@ -83,14 +128,25 @@ document.querySelector('#sort-select').addEventListener('change', event => { sor
 document.querySelector('.quick-filters').addEventListener('click', event => {
   const button = event.target.closest('[data-filter]');
   if (!button) return;
-  const filter = button.dataset.filter;
-  activeFilters.has(filter) ? activeFilters.delete(filter) : activeFilters.add(filter);
-  button.classList.toggle('active', activeFilters.has(filter));
-  render();
+  toggleFilter(button.dataset.filter);
 });
-taskList.addEventListener('click', event => handleTaskEvent(event, state, render));
-taskList.addEventListener('change', event => handleTaskEvent(event, state, render));
-taskList.addEventListener('input', event => handleTaskEvent(event, state, render));
+taskList.addEventListener('click', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
+taskList.addEventListener('change', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
+taskList.addEventListener('input', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
+document.querySelector('#alert-summary').addEventListener('click', event => {
+  const filterButton = event.target.closest('[data-alert-filter]');
+  if (filterButton) toggleFilter(filterButton.dataset.alertFilter);
+  const priorityButton = event.target.closest('[data-task-id]');
+  if (priorityButton) focusTask(priorityButton.dataset.taskId);
+});
+document.querySelector('#dependency-confirm-cancel').addEventListener('click', () => { closeDependencyConfirmation(true); render(); });
+document.querySelector('#dependency-confirm-close').addEventListener('click', () => { closeDependencyConfirmation(true); render(); });
+document.querySelector('#dependency-confirm-proceed').addEventListener('click', () => {
+  const completion = pendingCompletion;
+  closeDependencyConfirmation(false);
+  completion?.proceed();
+});
+dependencyConfirmation.addEventListener('click', event => { if (event.target === dependencyConfirmation) { closeDependencyConfirmation(true); render(); } });
 document.querySelector('#settings-button').addEventListener('click', openSettings);
 document.querySelector('#settings-close').addEventListener('click', closeSettings);
 document.querySelector('#settings-cancel').addEventListener('click', closeSettings);
@@ -108,6 +164,10 @@ settingsForm.addEventListener('submit', event => {
   render();
 });
 settingsPanel.addEventListener('click', event => { if (event.target === settingsPanel) closeSettings(); });
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && !settingsPanel.hidden) closeSettings(); });
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if (!dependencyConfirmation.hidden) { closeDependencyConfirmation(true); render(); }
+  else if (!settingsPanel.hidden) closeSettings();
+});
 
 initializeTasks();

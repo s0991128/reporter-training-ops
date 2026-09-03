@@ -66,7 +66,7 @@
       "강사별 출강 확정"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["PRE-001"],
     "documents": [
       {
         "name": "강사 섭외 목록",
@@ -115,7 +115,7 @@
       "예약 확인서 수령"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["PRE-001", "PRE-002"],
     "documents": [
       {
         "name": "시설 예약서",
@@ -164,7 +164,7 @@
       "안내문 발송 및 발송 기록 보관"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["PRE-003"],
     "documents": [
       {
         "name": "교육 안내문",
@@ -213,7 +213,7 @@
       "자료 최종본 및 수량 확인"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["PRE-004"],
     "documents": [
       {
         "name": "교재 체크리스트",
@@ -263,7 +263,7 @@
       "세팅 완료 사진 또는 점검표 확인"
     ],
     "riskLevel": "LOW",
-    "dependencies": [],
+    "dependencies": ["PRE-005"],
     "documents": [
       {
         "name": "교육장 점검표",
@@ -312,7 +312,7 @@
       "출결 현황 확인 및 오리엔테이션 완료"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["PRE-004"],
     "documents": [
       {
         "name": "출결 체크리스트",
@@ -362,7 +362,7 @@
       "안내 슬라이드 진행 완료"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["OPS-001"],
     "documents": [
       {
         "name": "오리엔테이션 자료",
@@ -412,7 +412,7 @@
       "실습 진행 및 과제 안내 완료"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["OPS-002"],
     "documents": [
       {
         "name": "취재 실습지",
@@ -462,7 +462,7 @@
       "중간 점검 기록 및 조치사항 등록"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["OPS-003"],
     "documents": [
       {
         "name": "중간 점검표",
@@ -512,7 +512,7 @@
       "제출 현황 및 안내 완료"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["OPS-004"],
     "documents": [
       {
         "name": "과제 제출 현황표",
@@ -562,7 +562,7 @@
       "수료 안내 및 설문 링크 발송"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["OPS-005"],
     "documents": [
       {
         "name": "만족도 설문",
@@ -612,7 +612,7 @@
       "시설 담당자 반납 확인"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["OPS-006"],
     "documents": [
       {
         "name": "반납 체크리스트",
@@ -661,7 +661,7 @@
       "공용 폴더에 산출물 정리 완료"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["CLS-001"],
     "documents": [
       {
         "name": "산출물 목록",
@@ -711,7 +711,7 @@
       "지급 서류 검토 및 결재 상신"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["CLS-002"],
     "documents": [
       {
         "name": "지급 서류 체크리스트",
@@ -760,7 +760,7 @@
       "집행 내역과 증빙 대조 완료"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["FIN-001"],
     "documents": [
       {
         "name": "예산 집행표",
@@ -809,7 +809,7 @@
       "정산 결과 확인 및 보완 완료"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["FIN-002"],
     "documents": [
       {
         "name": "정산 검토표",
@@ -859,7 +859,7 @@
       "결과 지표 집계표 작성"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["CLS-002"],
     "documents": [
       {
         "name": "결과 집계 양식",
@@ -909,7 +909,7 @@
       "결과보고서 초안 작성 및 검토"
     ],
     "riskLevel": "MEDIUM",
-    "dependencies": [],
+    "dependencies": ["RPT-001", "FIN-003"],
     "documents": [
       {
         "name": "결과보고서 양식",
@@ -958,7 +958,7 @@
       "개선과제 및 인계 문서 공유"
     ],
     "riskLevel": "HIGH",
-    "dependencies": [],
+    "dependencies": ["RPT-002", "FIN-003"],
     "documents": [
       {
         "name": "인계 체크리스트",
