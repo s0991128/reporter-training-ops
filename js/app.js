@@ -9,6 +9,9 @@ import { exportBackup, getLastBackupDate, previewBackup, readBackupFile, resetAl
 import { downloadTextFile, getDateFilename, tasksToCsv } from './csv.js';
 import { buildCsvImportPreview, cancelAdminEdit, commitAdminEdit, createTaskAdminSession, getTimingLabel, readTaskAdminForm, renderDependencyOptions, renderTaskAdmin, removeAdminTask, sortAdminTasks, startAdminEdit, suggestNextTaskId } from './task-admin.js';
 import { getDataSummary } from './data-quality.js';
+import { AI_MODES, analyzeGap } from './ai-adapter.js';
+import { GAP_INPUT_LIMITS, findSensitivePatterns, getSourceType, validateGapSources } from './gap-analysis.js';
+import { renderGapResults, renderGapSources, renderGapSummary } from './gap-ui.js';
 
 const state = loadState();
 let tasks = [];
@@ -30,9 +33,19 @@ const dependencyConfirmMessage = document.querySelector('#dependency-confirm-mes
 const taskAdminPanel = document.querySelector('#task-admin-panel');
 const taskAdminForm = document.querySelector('#task-admin-form');
 const taskCsvInput = document.querySelector('#task-csv-input');
+const gapAnalysisPanel = document.querySelector('#gap-analysis-panel');
+const gapSourceInput = document.querySelector('#gap-source-input');
+const gapAnalysisMode = document.querySelector('#gap-analysis-mode');
+const gapResultSummary = document.querySelector('#gap-result-summary');
+const gapResultList = document.querySelector('#gap-result-list');
 let pendingCompletion = null;
 let pendingBackup = null;
 let adminSession = null;
+let gapSources = [];
+let gapSession = null;
+let gapFilter = 'all';
+let gapSourceSequence = 1;
+let gapAnalysisRunning = false;
 
 async function initializeTasks() {
   try {
@@ -349,6 +362,7 @@ function renderTaskAdminView() {
 
 function openTaskAdmin() {
   if (!adminSession) adminSession = createTaskAdminSession(tasks);
+  clearAdminAiReference();
   renderTaskAdminView();
   taskAdminPanel.hidden = false;
   document.querySelector('#admin-search').focus();
@@ -357,6 +371,145 @@ function openTaskAdmin() {
 function closeTaskAdmin() {
   taskAdminPanel.hidden = true;
   if (adminSession) cancelAdminEdit(adminSession);
+  clearAdminAiReference();
+}
+
+function clearAdminAiReference() {
+  const reference = document.querySelector('#admin-ai-reference');
+  if (!reference) return;
+  reference.hidden = true;
+  const content = reference.querySelector('p');
+  if (content) content.textContent = '';
+}
+
+function setAdminAiReference(result, mode = '신규업무 후보') {
+  const reference = document.querySelector('#admin-ai-reference');
+  if (!reference) return;
+  reference.hidden = false;
+  reference.querySelector('strong').textContent = `AI 누락점검 참고 · ${mode}`;
+  reference.querySelector('p').textContent = `${result.source?.filename || '분석자료'}: ${result.source?.excerpt || result.candidate}\n${result.reason || ''}\nAI 제안은 참고용이며 저장 전 업무 정의를 담당자가 확인해야 합니다.`;
+}
+
+function openTaskAdminFromGap(result, taskId = null) {
+  if (!adminSession) adminSession = createTaskAdminSession(tasks);
+  const existingTaskId = taskId && tasks.some(task => task.id === taskId) ? taskId : null;
+  if (existingTaskId) {
+    startAdminEdit(adminSession, existingTaskId);
+  } else {
+    startAdminEdit(adminSession, null, '사전준비');
+    adminSession.draft.title = result.candidate;
+    adminSession.draft.description = result.candidate;
+    adminSession.draft.handover.caution = `분석자료 근거: ${result.source?.excerpt || ''}`.trim();
+    adminSession.draft.tags = Array.isArray(result.suggestedTags) ? result.suggestedTags : [];
+  }
+  showTaskAdminMessage(existingTaskId ? '기존 업무를 AI 누락점검 참고와 함께 열었습니다. 원본은 자동 변경되지 않습니다.' : '신규업무 후보를 편집 화면으로 전달했습니다. 단계·일정·필수여부·담당·완료기준·dependency를 확인해 주세요.');
+  gapAnalysisPanel.hidden = true;
+  renderTaskAdminView();
+  taskAdminPanel.hidden = false;
+  setAdminAiReference(result, existingTaskId ? '기존업무 보강 후보' : '신규업무 후보');
+  document.querySelector('#task-admin-title')?.scrollIntoView({ block:'nearest' });
+}
+
+function setGapMessage(message = '', isError = false) {
+  const element = document.querySelector('#gap-analysis-message');
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle('is-error', isError);
+}
+
+function renderGapView() {
+  const results = gapSession?.results || [];
+  document.querySelector('#gap-master-count').textContent = `${tasks.length}개 업무`;
+  document.querySelector('#gap-source-count').textContent = `${gapSources.length}개 파일`;
+  document.querySelector('#gap-analysis-run').disabled = gapSources.length === 0 || gapAnalysisRunning;
+  renderGapSources(document.querySelector('#gap-source-list'), gapSources, sourceId => {
+    gapSources = gapSources.filter(source => source.id !== sourceId);
+    gapSession = null;
+    setGapMessage();
+    renderGapView();
+  });
+  const summaryElements = {
+    all:document.querySelector('#gap-count-all'),
+    high:document.querySelector('#gap-count-high'),
+    medium:document.querySelector('#gap-count-medium'),
+    low:document.querySelector('#gap-count-low')
+  };
+  renderGapSummary(summaryElements, results);
+  ['NEW_TASK', 'ENRICH_EXISTING', 'DUPLICATE'].forEach(type => {
+    const count = results.filter(result => result.type === type).length;
+    const strong = gapResultSummary.querySelector(`[data-gap-filter="${type}"] strong`);
+    if (strong) strong.textContent = String(count);
+  });
+  gapResultSummary.querySelectorAll('[data-gap-filter]').forEach(button => button.classList.toggle('active', button.dataset.gapFilter === gapFilter));
+  renderGapResults(gapResultList, results, gapFilter, {
+    onAcceptNew:result => { result.status = 'ACCEPTED'; renderGapView(); openTaskAdminFromGap(result); },
+    onOpenExisting:result => { result.status = 'ACCEPTED'; renderGapView(); openTaskAdminFromGap(result, result.similarTasks[0]?.taskId); },
+    onIgnore:result => { result.status = 'IGNORED'; renderGapView(); }
+  });
+}
+
+function openGapAnalysis() {
+  renderGapView();
+  gapAnalysisPanel.hidden = false;
+  gapSourceInput.focus();
+}
+
+function closeGapAnalysis() { gapAnalysisPanel.hidden = true; }
+
+async function importGapSources(event) {
+  const files = [...(event.target.files || [])];
+  event.target.value = '';
+  if (!files.length) return;
+  const unsupported = [];
+  const sensitive = [];
+  for (const file of files) {
+    if (gapSources.length >= GAP_INPUT_LIMITS.maxFiles) { unsupported.push(`${file.name}(최대 ${GAP_INPUT_LIMITS.maxFiles}개)`); continue; }
+    const type = getSourceType(file.name);
+    if (!type) { unsupported.push(file.name); continue; }
+    const content = await file.text();
+    if (content.length > GAP_INPUT_LIMITS.maxFileChars) { unsupported.push(`${file.name}(파일이 너무 큼)`); continue; }
+    const totalAfterAdd = gapSources.reduce((sum, source) => sum + source.content.length, 0) + content.length;
+    if (totalAfterAdd > GAP_INPUT_LIMITS.maxTotalChars) { unsupported.push(`${file.name}(전체 용량 초과)`); continue; }
+    if (findSensitivePatterns(content).length) sensitive.push(file.name);
+    gapSources.push({ id:`SRC-${String(gapSourceSequence++).padStart(3, '0')}`, filename:file.name, type, content, addedAt:new Date().toISOString() });
+  }
+  gapSession = null;
+  const messages = [];
+  if (unsupported.length) messages.push(`지원하지 않는 파일은 제외했습니다: ${unsupported.join(', ')}`);
+  if (sensitive.length) messages.push(`민감정보 형식이 감지된 파일이 있습니다(${sensitive.join(', ')}). AI 정밀분석으로 전송하지 않도록 먼저 내용을 정리해 주세요.`);
+  setGapMessage(messages.join(' ') || '분석자료를 추가했습니다.');
+  renderGapView();
+}
+
+async function runGapAnalysis() {
+  if (!gapSources.length) { setGapMessage('분석자료를 먼저 추가해 주세요.', true); return; }
+  if (gapAnalysisRunning) return;
+  const mode = gapAnalysisMode.value || AI_MODES.LOCAL_RULE;
+  if (mode === AI_MODES.REMOTE_AI) {
+    const inputValidation = validateGapSources(gapSources);
+    if (!inputValidation.valid) {
+      const message = inputValidation.sensitivePatterns.length
+        ? '개인정보 형식이 감지되어 AI로 전송하지 않았습니다. 민감정보를 제거한 뒤 다시 시도해 주세요.'
+        : inputValidation.errors.join(' ');
+      setGapMessage(message, true);
+      return;
+    }
+  }
+  const runButton = document.querySelector('#gap-analysis-run');
+  gapAnalysisRunning = true;
+  runButton.disabled = true;
+  gapAnalysisMode.disabled = true;
+  setGapMessage(mode === AI_MODES.REMOTE_AI ? 'AI가 업무자료와 현재 업무를 비교하고 있습니다.' : '분석자료와 현재 업무 마스터를 비교하는 중입니다.');
+  renderGapView();
+  try {
+    const result = await analyzeGap({ sources:gapSources, tasks, mode });
+    gapSession = { sessionId:`ANALYSIS-${Date.now()}`, createdAt:new Date().toISOString(), sourceCount:gapSources.length, taskCount:tasks.length, mode, results:result.results };
+    setGapMessage(result.error || `분석이 완료되었습니다. ${result.results.length}건의 검토 후보가 있습니다.`, Boolean(result.error));
+  } finally {
+    gapAnalysisRunning = false;
+    gapAnalysisMode.disabled = false;
+    renderGapView();
+  }
 }
 
 function setAdminFormError(message = '') {
@@ -521,6 +674,17 @@ function handleTaskAdminAction(event) {
   if (action === 'validate') { showTaskAdminMessage('현재 편집 세션을 다시 검증했습니다.'); renderTaskAdminView(); }
 }
 
+document.querySelector('#gap-analysis-button').addEventListener('click', openGapAnalysis);
+document.querySelector('#gap-analysis-close').addEventListener('click', closeGapAnalysis);
+gapAnalysisPanel.addEventListener('click', event => { if (event.target === gapAnalysisPanel) closeGapAnalysis(); });
+gapSourceInput.addEventListener('change', importGapSources);
+document.querySelector('#gap-analysis-run').addEventListener('click', runGapAnalysis);
+gapResultSummary.addEventListener('click', event => {
+  const button = event.target.closest('[data-gap-filter]');
+  if (!button) return;
+  gapFilter = button.dataset.gapFilter;
+  renderGapView();
+});
 document.querySelector('#task-admin-button').addEventListener('click', openTaskAdmin);
 document.querySelector('#task-admin-close').addEventListener('click', closeTaskAdmin);
 taskAdminPanel.addEventListener('click', event => {
@@ -626,6 +790,7 @@ document.addEventListener('keydown', event => {
   if (!dependencyConfirmation.hidden) { closeDependencyConfirmation(true); render(); }
   else if (!resetConfirmation.hidden) closeResetConfirmation();
   else if (!backupPreviewPanel.hidden) closeBackupPreview();
+  else if (!gapAnalysisPanel.hidden) closeGapAnalysis();
   else if (!taskAdminPanel.hidden) closeTaskAdmin();
   else if (!dataPanel.hidden) closeDataPanel();
   else if (!settingsPanel.hidden) closeSettings();

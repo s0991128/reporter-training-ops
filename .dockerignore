@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.local
+node_modules
+tests
+docs
+*.db
+*.exe
+*.pdf
+*.csv
+SHA256.txt
+사용안내.txt
+reporter-training-backup-*.json
+*.log

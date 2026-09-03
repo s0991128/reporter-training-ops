@@ -16,6 +16,7 @@
           <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
         </div>
         <div class="topbar-actions">
+          <button id="gap-analysis-button" class="settings-button" type="button">AI 누락점검</button>
           <button id="task-admin-button" class="settings-button" type="button">업무 마스터</button>
           <button id="data-button" class="settings-button" type="button">데이터 관리</button>
           <button id="settings-button" class="settings-button" type="button">교육일정 설정</button>
@@ -90,6 +91,22 @@
           </section>
         </section>
       </main>
+      <section id="gap-analysis-panel" class="settings-panel gap-analysis-panel" hidden role="dialog" aria-modal="true" aria-labelledby="gap-analysis-title">
+        <div class="settings-dialog gap-analysis-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">AI GAP CHECK / V0.9</p><h2 id="gap-analysis-title">AI 업무 누락점검</h2></div><button id="gap-analysis-close" class="settings-close" type="button" aria-label="AI 누락점검 닫기">×</button></div>
+          <p class="gap-privacy-note"><strong>개인정보 주의</strong> 개인정보, 주민등록번호, 계좌번호, 전화번호, 이메일 등 민감정보가 포함된 문서를 AI 분석자료로 사용하지 마세요. 감지된 자료는 AI로 자동 전송하지 않습니다. 원본문서는 브라우저에 영구 저장하지 않습니다.</p>
+          <div class="gap-overview-grid">
+            <div><span>현재 업무 마스터</span><strong id="gap-master-count">0개 업무</strong></div>
+            <div><span>분석자료</span><strong id="gap-source-count">0개 파일</strong></div>
+            <div><span>분석 모드</span><label><select id="gap-analysis-mode"><option value="LOCAL_RULE">기본 비교 · 브라우저 규칙</option><option value="REMOTE_AI">AI 정밀분석 · 서버 필요</option></select></label></div>
+          </div>
+          <div class="gap-source-toolbar"><label class="gap-file-picker">분석자료 추가<input id="gap-source-input" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json" multiple /></label><button id="gap-analysis-run" class="settings-save" type="button" disabled>누락점검 실행</button></div>
+          <p class="gap-supported-note">현재 버전은 텍스트, Markdown, CSV, JSON 파일을 지원합니다. PDF, DOCX, HWP, HWPX는 지원하지 않습니다.</p>
+          <p id="gap-analysis-message" class="gap-analysis-message" role="status"></p>
+          <section class="gap-sources-section" aria-labelledby="gap-sources-title"><div class="gap-section-heading"><div><p class="eyebrow">SOURCES</p><h3 id="gap-sources-title">분석자료</h3></div><span>메모리에서만 관리</span></div><div id="gap-source-list" class="gap-source-list"></div></section>
+          <section class="gap-results-section" aria-labelledby="gap-results-title"><div class="gap-section-heading"><div><p class="eyebrow">ANALYSIS RESULTS</p><h3 id="gap-results-title">분석 결과</h3></div><span>신뢰도는 검토 우선순위 지표입니다</span></div><div id="gap-confidence-summary" class="gap-confidence-summary"><div><span>전체 후보</span><strong id="gap-count-all">0</strong></div><div><span>높은 확인 필요</span><strong id="gap-count-high">0</strong></div><div><span>중간 확인 필요</span><strong id="gap-count-medium">0</strong></div><div><span>낮은 확인 필요</span><strong id="gap-count-low">0</strong></div></div><div id="gap-result-summary" class="gap-result-summary"><button type="button" data-gap-filter="all" class="active">전체</button><button type="button" data-gap-filter="NEW_TASK">신규업무 후보</button><button type="button" data-gap-filter="ENRICH_EXISTING">기존업무 보강</button><button type="button" data-gap-filter="DUPLICATE">이미 반영</button><button type="button" data-gap-filter="high">높은 확인 필요</button><span class="gap-confidence-note">HIGH/MEDIUM/LOW는 사실 확률이 아니라 확인 순서를 위한 참고값입니다.</span></div><div id="gap-result-list" class="gap-result-list"></div></section>
+        </div>
+      </section>
       <section id="budget-panel" class="settings-panel budget-panel" hidden role="dialog" aria-modal="true" aria-labelledby="budget-title">
         <div class="settings-dialog budget-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">BUDGET & SETTLEMENT</p><h2 id="budget-title">예산·정산 관리</h2></div><button id="budget-close" class="settings-close" type="button" aria-label="예산창 닫기">×</button></div>
@@ -136,7 +153,7 @@
       </section>
       <section id="task-admin-panel" class="settings-panel task-admin-panel" hidden role="dialog" aria-modal="true" aria-labelledby="task-admin-title">
         <div class="settings-dialog task-admin-dialog">
-          <div class="settings-dialog-heading"><div><p class="eyebrow">TASK MASTER / V0.7</p><h2 id="task-admin-title">업무 마스터 관리</h2></div><button id="task-admin-close" class="settings-close" type="button" aria-label="업무 마스터 닫기">×</button></div>
+          <div class="settings-dialog-heading"><div><p class="eyebrow">TASK MASTER / V0.8</p><h2 id="task-admin-title">업무 마스터 관리</h2></div><button id="task-admin-close" class="settings-close" type="button" aria-label="업무 마스터 닫기">×</button></div>
           <p class="admin-privacy-note"><strong>개인정보 입력 금지</strong> 업무 정의에는 교육생 이름, 전화번호, 주민번호, 계좌번호 등 개인정보를 입력하지 마세요. 개인정보 관련 업무는 처리 완료 여부만 관리합니다.</p>
           <div id="task-admin-summary" class="task-admin-summary"></div>
           <div class="admin-toolbar">
@@ -159,6 +176,7 @@
               <div id="task-admin-detail-view" class="task-admin-detail-view"></div>
               <div id="task-admin-editor-wrap" hidden>
                 <div class="admin-editor-heading"><div><p class="eyebrow">TASK EDITOR</p><h3>업무 정의 편집</h3></div><span>메모·완료상태는 운영화면에서 관리</span></div>
+                <div id="admin-ai-reference" class="admin-ai-reference" hidden><strong>AI 누락점검 참고</strong><p></p></div>
                 <form id="task-admin-form" class="task-admin-form">
                   <input name="originalId" type="hidden" />
                   <div class="admin-form-grid admin-form-grid-3"><label>업무 ID<input name="id" type="text" required pattern="(PRE|OPS|CLS|FIN|RPT)-[0-9]{3}" /><button type="button" class="admin-inline-button" data-admin-action="suggest-id">ID 자동 제안</button></label><label>단계<select name="phase"></select></label><label>카테고리<select name="category"></select></label></div>
