@@ -3,3 +3,10 @@
 node_modules/
 npm-debug.log*
 .DS_Store
+*.db
+*.exe
+*.pdf
+*.csv
+SHA256.txt
+사용안내.txt
+reporter-training-backup-*.json
