@@ -8,7 +8,7 @@ import { analyzeWithLLM, AiServiceError } from './ai-service.js';
 import { findSensitivePatterns, validateRequestPayload } from './validation.js';
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const ALLOWED_STATIC_ROOTS = new Set(['index.html', 'css', 'js', 'data']);
+const ALLOWED_STATIC_ROOTS = new Set(['index.html', '업무목록.csv', 'css', 'js', 'data']);
 const MIME_TYPES = Object.freeze({
   '.html':'text/html; charset=utf-8',
   '.css':'text/css; charset=utf-8',

@@ -16,6 +16,8 @@
           <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
         </div>
         <div class="topbar-actions">
+          <button id="checklist-button" class="settings-button checklist-menu-button" type="button">업무 체크리스트</button>
+          <button id="dashboard-button" class="settings-button" type="button">운영 대시보드</button>
           <button id="gap-analysis-button" class="settings-button" type="button">AI 누락점검</button>
           <button id="task-admin-button" class="settings-button" type="button">업무 마스터</button>
           <button id="data-button" class="settings-button" type="button">데이터 관리</button>
@@ -25,6 +27,7 @@
       </header>
 
       <main>
+        <div id="dashboard-view">
         <section class="summary-grid" aria-label="업무 요약">
           <article class="summary-card summary-total"><div><span class="card-label">전체 업무</span><strong id="total-count">0</strong></div><span class="card-icon">ALL</span></article>
           <article class="summary-card summary-complete"><div><span class="card-label">완료</span><strong id="complete-count">0</strong></div><span class="card-icon">OK</span></article>
@@ -90,6 +93,31 @@
             <div id="task-list" class="task-list" aria-live="polite"></div>
           </section>
         </section>
+        </div>
+        <section id="checklist-view" class="checklist-view" hidden aria-labelledby="checklist-title">
+          <div class="checklist-page-heading">
+            <div><p class="eyebrow">OPERATIONS CHECKLIST / V0.10</p><h2 id="checklist-title">업무 체크리스트</h2><p>담당자가 바뀌어도 현재 구간, 완료 업무, 남은 업무를 바로 이어볼 수 있습니다.</p><p id="checklist-current-section" class="checklist-current-section">현재 진행 구간 · 업무목록.csv를 불러오는 중</p></div>
+            <button id="checklist-back" class="settings-cancel" type="button">운영 대시보드</button>
+          </div>
+          <p class="checklist-privacy-note"><strong>개인정보 주의</strong> 주민등록번호, 전화번호, 계좌번호 등 개인정보는 메모에 입력하지 마세요. 개인정보 관련 업무는 처리 여부만 체크하며 개인정보를 별도 저장하지 않습니다.</p>
+          <section id="checklist-summary" class="checklist-summary" aria-label="체크리스트 요약">
+            <article><span>전체 업무</span><strong data-checklist-summary="total">0</strong></article>
+            <article><span>완료</span><strong data-checklist-summary="complete">0</strong></article>
+            <article><span>진행</span><strong data-checklist-summary="progress">0</strong></article>
+            <article><span>미완료</span><strong data-checklist-summary="pending">0</strong></article>
+            <article><span>해당없음</span><strong data-checklist-summary="notApplicable">0</strong></article>
+            <article class="checklist-summary-progress"><div><span>진행률</span><strong data-checklist-summary="percent">0%</strong></div><div class="progress-track"><span data-checklist-progress></span></div><small data-checklist-caption>업무목록.csv를 불러오는 중입니다.</small></article>
+          </section>
+          <div class="checklist-layout">
+            <aside class="checklist-sidebar"><div class="checklist-sidebar-heading"><p class="eyebrow">SECTIONS</p><h3>업무 구간</h3></div><nav id="checklist-section-nav" class="checklist-section-nav-list" aria-label="업무 구간"></nav></aside>
+            <section class="checklist-content">
+              <div class="checklist-toolbar"><label class="checklist-search"><span aria-hidden="true">⌕</span><input id="checklist-search" type="search" placeholder="구간, 업무, 비고, 메모 검색" /></label><div class="checklist-filters" role="group" aria-label="체크리스트 상태 필터"><button type="button" class="checklist-filter active" data-checklist-filter="all">전체</button><button type="button" class="checklist-filter" data-checklist-filter="incomplete">미완료</button><button type="button" class="checklist-filter" data-checklist-filter="completed">완료</button><button type="button" class="checklist-filter" data-checklist-filter="in_progress">진행중</button><button type="button" class="checklist-filter" data-checklist-filter="not_applicable">해당없음</button></div></div>
+              <p id="checklist-validation-message" class="checklist-validation-message" role="status"></p>
+              <p id="checklist-result-summary" class="checklist-result-summary">업무목록.csv를 불러오는 중입니다.</p>
+              <div id="checklist-groups" class="checklist-groups" aria-live="polite"></div>
+            </section>
+          </div>
+        </section>
       </main>
       <section id="gap-analysis-panel" class="settings-panel gap-analysis-panel" hidden role="dialog" aria-modal="true" aria-labelledby="gap-analysis-title">
         <div class="settings-dialog gap-analysis-dialog">
@@ -131,7 +159,7 @@
       <section id="backup-preview-panel" class="settings-panel backup-preview-panel" hidden role="dialog" aria-modal="true" aria-labelledby="backup-preview-title">
         <div class="settings-dialog data-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">BACKUP PREVIEW</p><h2 id="backup-preview-title">복원 전 미리보기</h2></div><button id="backup-preview-close" class="settings-close" type="button" aria-label="백업 미리보기 닫기">×</button></div>
-          <div class="backup-preview-grid"><div><span>백업 생성일</span><strong id="preview-exported-at">-</strong></div><div><span>교육명</span><strong id="preview-training-name">-</strong></div><div><span>업무상태</span><strong id="preview-task-count">0건</strong></div><div><span>완료</span><strong id="preview-completed-count">0건</strong></div><div><span>예산항목</span><strong id="preview-category-count">0개</strong></div><div><span>지출</span><strong id="preview-transaction-count">0건</strong></div></div>
+          <div class="backup-preview-grid"><div><span>백업 생성일</span><strong id="preview-exported-at">-</strong></div><div><span>교육명</span><strong id="preview-training-name">-</strong></div><div><span>업무상태</span><strong id="preview-task-count">0건</strong></div><div><span>완료</span><strong id="preview-completed-count">0건</strong></div><div><span>체크리스트 상태</span><strong id="preview-checklist-count">0건</strong></div><div><span>체크리스트 완료</span><strong id="preview-checklist-completed-count">0건</strong></div><div><span>예산항목</span><strong id="preview-category-count">0개</strong></div><div><span>지출</span><strong id="preview-transaction-count">0건</strong></div></div>
           <p id="backup-preview-warning" class="backup-preview-warning"></p>
           <p class="backup-replace-note">현재 운영데이터가 백업파일의 데이터로 교체됩니다.</p>
           <div class="settings-actions"><button id="backup-preview-cancel" class="settings-cancel" type="button">취소</button><button id="backup-preview-restore" class="settings-save" type="button">가져오기</button></div>
@@ -217,7 +245,7 @@
           </form>
         </div>
       </section>
-      <footer><span>수습기자 교육운영 미니리더</span><span>샘플 데이터 20건 · 개인정보 미수집</span></footer>
+      <footer><span>수습기자 교육운영 미니리더</span><span>업무 마스터 20건 · 운영 체크리스트 117건 · 개인정보 미수집</span></footer>
     </div>
     <script type="module" src="js/app.js"></script>
   </body>

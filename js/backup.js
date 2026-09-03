@@ -1,11 +1,12 @@
 import { PROJECT_ID, STORAGE_VERSION, loadState, replaceState, resetState } from './storage.js';
 
 export const BACKUP_VERSION = 1;
-export const APPLICATION_VERSION = '0.7';
+export const APPLICATION_VERSION = '0.10';
 export const LAST_BACKUP_KEY = 'reporter-training-ops-last-backup-v1';
 
 const TRANSACTION_STATUSES = ['PLANNED', 'COMMITTED', 'PAID', 'CANCELLED'];
 const SETTLEMENT_STATUSES = ['NOT_REQUIRED', 'PENDING', 'COMPLETED'];
+const CHECKLIST_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'NOT_APPLICABLE'];
 const SENSITIVE_KEY_PATTERN = /resident|registration|account|phone|address|email|주민|계좌|전화|주소|이메일/i;
 
 function isObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -109,6 +110,18 @@ function validateBudget(budget, errors, isLegacy) {
   });
 }
 
+function validateChecklist(checklist, errors) {
+  if (checklist === undefined) return;
+  if (!isObject(checklist)) { errors.push('checklist 구조를 확인할 수 없습니다.'); return; }
+  Object.entries(checklist).forEach(([key, entry]) => {
+    if (!isObject(entry)) { errors.push(`체크리스트 ${key} 상태 구조가 올바르지 않습니다.`); return; }
+    if (!CHECKLIST_STATUSES.includes(entry.status)) errors.push(`체크리스트 ${key} 상태가 올바르지 않습니다.`);
+    if (entry.completedAt !== null && entry.completedAt !== undefined && Number.isNaN(new Date(entry.completedAt).getTime())) errors.push(`체크리스트 ${key} 완료일이 올바르지 않습니다.`);
+    if (typeof entry.memo !== 'string') errors.push(`체크리스트 ${key} 메모가 올바르지 않습니다.`);
+    if (!Array.isArray(entry.checks) || entry.checks.length > 3 || entry.checks.some(value => typeof value !== 'boolean')) errors.push(`체크리스트 ${key} 세부 체크가 올바르지 않습니다.`);
+  });
+}
+
 export function validateBackup(backup, tasks = []) {
   const errors = [];
   const warnings = [];
@@ -134,6 +147,7 @@ export function validateBackup(backup, tasks = []) {
     if (unknownTaskIds.length) warnings.push(`현재 버전에서 찾을 수 없는 업무상태 ${unknownTaskIds.length}건이 있습니다.`);
   }
   validateBudget(data.budget, errors, Number(data.version) < STORAGE_VERSION);
+  validateChecklist(data.checklist, errors);
   if (containsSensitiveKey(backup)) errors.push('백업파일에 개인정보 필드가 포함되어 있습니다.');
   return { valid:errors.length === 0, errors, warnings, unknownTaskIds };
 }
@@ -142,6 +156,7 @@ export function previewBackup(backup, tasks = []) {
   const validation = validateBackup(backup, tasks);
   const data = isObject(backup?.data) ? backup.data : {};
   const taskStates = isObject(data.tasks) ? Object.values(data.tasks) : [];
+  const checklistStates = isObject(data.checklist) ? Object.values(data.checklist) : [];
   const plans = isObject(data.budget?.plans) ? data.budget.plans : {};
   const transactions = Array.isArray(data.budget?.transactions) ? data.budget.transactions : [];
   return {
@@ -152,7 +167,9 @@ export function previewBackup(backup, tasks = []) {
     taskCount:taskStates.length,
     completedCount:taskStates.filter(isCompletedTaskState).length,
     categoryCount:Object.keys(plans).length,
-    transactionCount:transactions.length
+    transactionCount:transactions.length,
+    checklistCount:checklistStates.length,
+    checklistCompletedCount:checklistStates.filter(item => item?.status === 'COMPLETED').length
   };
 }
 
