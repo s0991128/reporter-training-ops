@@ -1,8 +1,9 @@
 import { PHASE_INDEX, SEVERITY_ORDER } from './constants.js';
 import { TASK_STATUS, getTaskState } from './storage.js';
 import { calculateTaskDate, getScheduleStatus, SCHEDULE_STATUS } from './schedule.js';
+import { getBudgetSummary, getPendingSettlementTransactions, getTransactionsByTask, TRANSACTION_STATUS, SETTLEMENT_STATUS } from './budget.js';
 
-const DEFAULT_SEVERITY = Object.freeze({ BLOCKED:'MEDIUM', OVERDUE_REQUIRED:'HIGH', HIGH_RISK:'MEDIUM', DUE_SOON_CRITICAL:'HIGH', PHASE_WARNING:'MEDIUM' });
+const DEFAULT_SEVERITY = Object.freeze({ BLOCKED:'MEDIUM', OVERDUE_REQUIRED:'HIGH', HIGH_RISK:'MEDIUM', DUE_SOON_CRITICAL:'HIGH', PHASE_WARNING:'MEDIUM', BUDGET_OVER:'HIGH', SETTLEMENT_PENDING:'HIGH', BUDGET_TASK_MISMATCH:'MEDIUM' });
 const RISK_ORDER = Object.freeze({ HIGH:0, MEDIUM:1, LOW:2 });
 
 function isCompleted(states, taskId) {
@@ -35,28 +36,39 @@ function getDependencySeverity(dependencies, allStates, settings, today) {
   return hasImportantDependency ? 'HIGH' : 'MEDIUM';
 }
 
-export function getTaskAlerts(task, taskState = {}, allTasks = [], allStates = {}, settings = {}, today = new Date()) {
-  if (!task || taskState.status === TASK_STATUS.COMPLETED) return [];
+export function getTaskAlerts(task, taskState = {}, allTasks = [], allStates = {}, settings = {}, today = new Date(), budget = null) {
+  if (!task) return [];
   const alerts = [];
-  const incompleteDependencies = getIncompleteDependencies(task, allTasks, allStates);
-  if (incompleteDependencies.length) {
-    alerts.push(createAlert(task, 'BLOCKED', '선행업무 미완료', getDependencySeverity(incompleteDependencies, allStates, settings, today), {
-      dependencyIds:incompleteDependencies.map(dependency => dependency.id),
-      dependencies:incompleteDependencies
-    }));
+  const budgetData = budget || allStates?.budget || {};
+  if (taskState.status !== TASK_STATUS.COMPLETED) {
+    const incompleteDependencies = getIncompleteDependencies(task, allTasks, allStates);
+    if (incompleteDependencies.length) {
+      alerts.push(createAlert(task, 'BLOCKED', '선행업무 미완료', getDependencySeverity(incompleteDependencies, allStates, settings, today), {
+        dependencyIds:incompleteDependencies.map(dependency => dependency.id),
+        dependencies:incompleteDependencies
+      }));
+    }
+
+    const scheduleStatus = getScheduleStatus(task, taskState, settings, today);
+    if (task.required && scheduleStatus === SCHEDULE_STATUS.OVERDUE) {
+      const severity = task.riskLevel === 'HIGH' ? 'CRITICAL' : 'HIGH';
+      alerts.push(createAlert(task, 'OVERDUE_REQUIRED', '기한이 지난 필수 업무입니다.', severity, { scheduleStatus }));
+    }
+    if (task.required && task.riskLevel === 'HIGH' && [SCHEDULE_STATUS.DUE_SOON, SCHEDULE_STATUS.DUE_TODAY].includes(scheduleStatus)) {
+      alerts.push(createAlert(task, 'DUE_SOON_CRITICAL', scheduleStatus === SCHEDULE_STATUS.DUE_TODAY ? '오늘 마감인 고위험 필수 업무입니다.' : '마감이 임박한 고위험 필수 업무입니다.', 'HIGH', { scheduleStatus }));
+    }
+    if (task.riskLevel === 'HIGH') {
+      alerts.push(createAlert(task, 'HIGH_RISK', '고위험 업무이므로 완료 기준을 확인하세요.', 'MEDIUM', { scheduleStatus }));
+    }
   }
 
-  const scheduleStatus = getScheduleStatus(task, taskState, settings, today);
-  if (task.required && scheduleStatus === SCHEDULE_STATUS.OVERDUE) {
-    const severity = task.riskLevel === 'HIGH' ? 'CRITICAL' : 'HIGH';
-    alerts.push(createAlert(task, 'OVERDUE_REQUIRED', '기한이 지난 필수 업무입니다.', severity, { scheduleStatus }));
+  const linkedTransactions = getTransactionsByTask(budgetData, task.id).filter(transaction => transaction.status !== TRANSACTION_STATUS.CANCELLED);
+  if (task.budget?.related && taskState.status === TASK_STATUS.COMPLETED && !linkedTransactions.length) {
+    alerts.push(createAlert(task, 'BUDGET_TASK_MISMATCH', '관련 지출내역을 확인하세요.', 'MEDIUM'));
   }
-  if (task.required && task.riskLevel === 'HIGH' && [SCHEDULE_STATUS.DUE_SOON, SCHEDULE_STATUS.DUE_TODAY].includes(scheduleStatus)) {
-    alerts.push(createAlert(task, 'DUE_SOON_CRITICAL', scheduleStatus === SCHEDULE_STATUS.DUE_TODAY ? '오늘 마감인 고위험 필수 업무입니다.' : '마감이 임박한 고위험 필수 업무입니다.', 'HIGH', { scheduleStatus }));
-  }
-  if (task.riskLevel === 'HIGH') {
-    alerts.push(createAlert(task, 'HIGH_RISK', '고위험 업무이므로 완료 기준을 확인하세요.', 'MEDIUM', { scheduleStatus }));
-  }
+  linkedTransactions.filter(transaction => transaction.status === TRANSACTION_STATUS.PAID && transaction.settlementStatus === SETTLEMENT_STATUS.PENDING).forEach(transaction => {
+    alerts.push(createAlert(task, 'SETTLEMENT_PENDING', '지급은 완료되었지만 정산이 남아 있습니다.', 'HIGH', { transactionId:transaction.id, amount:transaction.amount }));
+  });
   return alerts;
 }
 
@@ -82,8 +94,14 @@ export function getPhaseWarnings(tasks = [], states = {}, settings = {}, today =
   return warnings;
 }
 
-export function getAllAlerts(tasks = [], states = {}, settings = {}, today = new Date()) {
-  const alerts = tasks.flatMap(task => getTaskAlerts(task, getTaskState(states, task.id), tasks, states, settings, today));
+export function getAllAlerts(tasks = [], states = {}, settings = {}, today = new Date(), budget = null) {
+  const budgetData = budget || states?.budget || {};
+  const alerts = tasks.flatMap(task => getTaskAlerts(task, getTaskState(states, task.id), tasks, states, settings, today, budgetData));
+  const budgetSummary = getBudgetSummary(budgetData);
+  if (budgetSummary.isOverBudget) alerts.push({ taskId:'__BUDGET__', taskTitle:'예산·정산', type:'BUDGET_OVER', message:`예산초과 ${budgetSummary.overBudgetAmount.toLocaleString('ko-KR')}원`, severity:'HIGH', amount:budgetSummary.overBudgetAmount });
+  getPendingSettlementTransactions(budgetData).filter(transaction => !tasks.some(task => task.id === transaction.taskId)).forEach(transaction => {
+    alerts.push({ taskId:transaction.taskId || transaction.id, taskTitle:transaction.description || transaction.id, type:'SETTLEMENT_PENDING', message:'지급은 완료되었지만 정산이 남아 있습니다.', severity:'HIGH', transactionId:transaction.id, amount:transaction.amount });
+  });
   return alerts.concat(getPhaseWarnings(tasks, states, settings, today)).sort((first, second) => {
     const severityDifference = SEVERITY_ORDER.indexOf(getAlertSeverity(first)) - SEVERITY_ORDER.indexOf(getAlertSeverity(second));
     if (severityDifference) return severityDifference;
@@ -102,9 +120,9 @@ export function getAlertSeverity(alert = {}) {
   return SEVERITY_ORDER.includes(alert.severity) ? alert.severity : (DEFAULT_SEVERITY[alert.type] || 'LOW');
 }
 
-export function getAlertSummary(tasks = [], states = {}, settings = {}, today = new Date()) {
-  const alerts = getAllAlerts(tasks, states, settings, today);
-  const byType = Object.fromEntries(['BLOCKED', 'OVERDUE_REQUIRED', 'HIGH_RISK', 'DUE_SOON_CRITICAL', 'PHASE_WARNING'].map(type => [type, new Set()]));
+export function getAlertSummary(tasks = [], states = {}, settings = {}, today = new Date(), budget = null) {
+  const alerts = getAllAlerts(tasks, states, settings, today, budget);
+  const byType = Object.fromEntries(['BLOCKED', 'OVERDUE_REQUIRED', 'HIGH_RISK', 'DUE_SOON_CRITICAL', 'PHASE_WARNING', 'BUDGET_OVER', 'SETTLEMENT_PENDING', 'BUDGET_TASK_MISMATCH'].map(type => [type, new Set()]));
   alerts.forEach(alert => byType[alert.type]?.add(alert.taskId));
   const counts = Object.fromEntries(Object.entries(byType).map(([type, taskIds]) => [type, taskIds.size]));
   const alertedTaskCount = new Set(alerts.map(alert => alert.taskId)).size;
@@ -126,7 +144,10 @@ export function getAlertSummary(tasks = [], states = {}, settings = {}, today = 
     overdueRequired:counts.OVERDUE_REQUIRED,
     highRisk:counts.HIGH_RISK,
     dueSoonCritical:counts.DUE_SOON_CRITICAL,
-    phaseWarnings:counts.PHASE_WARNING
+    phaseWarnings:counts.PHASE_WARNING,
+    budgetOver:counts.BUDGET_OVER,
+    settlementPending:counts.SETTLEMENT_PENDING,
+    budgetTaskMismatch:counts.BUDGET_TASK_MISMATCH
   };
 }
 

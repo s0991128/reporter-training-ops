@@ -3,6 +3,7 @@ import { getTasksByPhase } from './tasks.js';
 import { formatTaskDate, getDueSoonTasks, getOverdueTasks, getTasksDueToday } from './schedule.js';
 import { getAlertSummary } from './alerts.js';
 import { PHASES } from './constants.js';
+import { formatAmount, getBudgetSummary } from './budget.js';
 
 export const STAGES = PHASES;
 
@@ -26,7 +27,7 @@ function renderScheduleSummary(tasks, state) {
 }
 
 function renderAlertSummary(tasks, state) {
-  const summary = getAlertSummary(tasks, state, state.settings);
+  const summary = getAlertSummary(tasks, state, state.settings, new Date(), state.budget);
   document.querySelector('#alert-total-count').textContent = summary.total;
   document.querySelector('#alert-blocked-count').textContent = summary.blocked;
   document.querySelector('#alert-overdue-count').textContent = summary.overdueRequired;
@@ -40,7 +41,20 @@ function renderAlertSummary(tasks, state) {
   priorityList.innerHTML = summary.priorityTasks.filter(item => item.task).map(item => `<li><button class="priority-task priority-${item.alert.severity.toLowerCase()}" type="button" data-task-id="${item.task.id}"><span class="priority-severity">${item.alert.severity}</span><span><b>${item.task.id}</b> ${item.task.title}</span><small>${item.alert.message}</small></button></li>`).join('');
 }
 
-export function renderDashboard(tasks, state) {
+function renderBudgetSummary(state, budgetCategories = []) {
+  const summary = getBudgetSummary(state, budgetCategories);
+  document.querySelector('#budget-total-planned').textContent = formatAmount(summary.totalPlanned);
+  document.querySelector('#budget-total-committed').textContent = formatAmount(summary.totalCommitted);
+  document.querySelector('#budget-total-paid').textContent = formatAmount(summary.totalPaid);
+  document.querySelector('#budget-total-available').textContent = formatAmount(summary.totalAvailable);
+  document.querySelector('#budget-execution-rate').textContent = `${summary.executionRate.toFixed(1)}%`;
+  document.querySelector('#budget-pending-count').textContent = `${summary.pendingSettlementCount}건`;
+  const overrun = document.querySelector('#budget-overrun');
+  overrun.hidden = !summary.isOverBudget;
+  overrun.textContent = summary.isOverBudget ? `예산초과 ${formatAmount(summary.overBudgetAmount)}` : '';
+}
+
+export function renderDashboard(tasks, state, budgetCategories = []) {
   const stats = getStats(tasks, state);
   const percent = stats.total ? Math.round((stats.complete / stats.total) * 100) : 0;
   document.querySelector('#total-count').textContent = stats.total;
@@ -59,5 +73,6 @@ export function renderDashboard(tasks, state) {
   }).join('');
   renderScheduleSummary(tasks, state);
   renderAlertSummary(tasks, state);
+  renderBudgetSummary(state, budgetCategories);
   return stats;
 }

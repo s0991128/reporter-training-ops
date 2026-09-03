@@ -3,6 +3,7 @@ import { matchesTaskSearch } from './search.js';
 import { validateTasks } from './validator.js';
 import { calculateTaskDate, getDaysDifference, getDueSoonTasks, getOverdueTasks, getScheduleStatus, getTasksDueThisWeek, getTasksDueToday, formatTaskDate, SCHEDULE_STATUS } from './schedule.js';
 import { getIncompleteDependencies, getPhaseWarnings, getTaskAlerts } from './alerts.js';
+import { renderTaskBudget } from './budget-view.js';
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[character])); }
 function formatCompletedAt(value) {
@@ -62,7 +63,7 @@ export function filterTasks(tasks, state, {stage = '전체', search = '', filter
   const phaseWarnings = getPhaseWarnings(allTasks, state, settings);
   return tasks.filter(task => {
     const taskState = getTaskState(state, task.id);
-    const taskAlerts = getTaskAlerts(task, taskState, allTasks, state, settings);
+    const taskAlerts = getTaskAlerts(task, taskState, allTasks, state, settings, new Date(), state.budget);
     const hasAttention = taskAlerts.length > 0 || phaseWarnings.some(alert => alert.taskId === task.id);
     return (stage === '전체' || task.phase === stage)
       && (!query || matchesTaskSearch(task, query))
@@ -77,13 +78,13 @@ export function filterTasks(tasks, state, {stage = '전체', search = '', filter
   });
 }
 
-export function renderTasks(tasks, state, list, allTasks = tasks) {
+export function renderTasks(tasks, state, list, allTasks = tasks, budgetCategories = []) {
   if (!tasks.length) { list.innerHTML = '<div class="empty-state">조건에 맞는 업무가 없습니다.<br /><small>검색어, 일정 설정 또는 필터를 조정해 보세요.</small></div>'; return; }
   list.innerHTML = tasks.map(task => {
     const taskState = getTaskState(state, task.id);
     const completed = taskState.status === TASK_STATUS.COMPLETED;
     const schedule = getScheduleMessage(task, taskState, state.settings);
-    const alerts = getTaskAlerts(task, taskState, allTasks, state, state.settings).concat(getPhaseWarnings(allTasks, state, state.settings).filter(alert => alert.taskId === task.id));
+    const alerts = getTaskAlerts(task, taskState, allTasks, state, state.settings, new Date(), state.budget).concat(getPhaseWarnings(allTasks, state, state.settings).filter(alert => alert.taskId === task.id));
     const criteria = getCompletionCriteria(task).map(item => `<li>${escapeHtml(item)}</li>`).join('');
     const scheduleMarkup = schedule.date ? `<div class="schedule-detail"><span class="schedule-date">${schedule.date}</span><span class="schedule-status schedule-status-${schedule.status.toLowerCase()}">${schedule.message}</span></div>` : '';
     return `<article class="task-card ${completed ? 'is-complete' : ''} schedule-card-${schedule.status.toLowerCase()}" data-task-id="${escapeHtml(task.id)}">
@@ -91,6 +92,7 @@ export function renderTasks(tasks, state, list, allTasks = tasks) {
       <h3>${escapeHtml(task.title)}</h3><p class="task-description">${escapeHtml(task.description)}</p>
       <div class="meta-row"><span>담당 <b>${escapeHtml(task.assigneeRole)}</b></span><span>소요 <b>${task.estimatedMinutes}분</b></span><span class="${task.required ? 'required' : 'optional'}">${task.required ? '필수' : '선택'}</span></div>
       ${renderTaskAlerts(alerts)}
+      ${renderTaskBudget(task, state.budget, budgetCategories)}
       <div class="completion-criteria"><span>완료기준</span><ul>${criteria}</ul></div><p class="caution"><span>주의</span> ${escapeHtml(getTaskCaution(task))}</p>
       <div class="completion-row"><label class="completion-label"><input type="checkbox" data-action="complete" ${completed ? 'checked' : ''} /> <span>${completed ? '완료됨' : '완료 체크'}</span></label><span class="complete-date">${taskState.completedAt ? `완료일 ${formatCompletedAt(taskState.completedAt)}` : ''}</span><button class="memo-button" data-action="memo">${taskState.memo ? '메모 수정' : '메모 입력'} ${taskState.memo ? '•' : '+'}</button></div>
       <div class="memo-area ${taskState.memo ? 'open' : ''}"><textarea data-action="memo-input" placeholder="인수인계에 필요한 메모를 입력하세요.">${escapeHtml(taskState.memo || '')}</textarea><p class="memo-hint">메모는 이 브라우저에만 저장됩니다.</p></div>

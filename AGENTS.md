@@ -1,46 +1,32 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-This repository currently has no tracked source files, so treat the layout below as the default convention for new work:
+## Project Structure
+This is a framework-free static web app. `index.html` is the entry point; `css/style.css` is the only stylesheet. `data/tasks.json` is the task-definition Single Source of Truth and `data/tasks.schema.json` documents its shape. Runtime modules live under `js/`: `app.js` wires the UI, `tasks.js` renders operations, `storage.js` manages localStorage v4, `schedule.js` and `alerts.js` handle dates and warnings, `budget*.js` handles v0.5 finance, `backup.js` handles v0.6 data movement, and `task-admin.js`, `csv.js`, and `data-quality.js` provide v0.7 master-data tooling. Specifications are in `docs/`; deterministic tests are in `tests/`.
 
-- `src/` for application code
-- `tests/` for automated tests
-- `assets/` for images, sample data, or other static files
-- `docs/` for reference material or process notes
+## Run And Test
+Because task data is loaded with `fetch`, serve the repository over HTTP rather than opening `index.html` with `file://`:
 
-Keep feature code grouped by domain rather than by file type. Use clear file names such as `src/scheduler.py` or `src/components/TaskList.tsx`.
+```powershell
+python -m http.server 8000
+```
 
-## Build, Test, and Development Commands
-No build or test scripts are defined yet. When you add them, document the exact command in `README.md` and keep the names consistent:
+Open `http://localhost:8000`. With Node.js installed, run module tests with:
 
-- `npm run dev` or `make dev` for local development
-- `npm test` or `pytest` for the test suite
-- `npm run build` or `make build` for production packaging
+```powershell
+node --experimental-default-type=module tests/task-master.test.js
+node --experimental-default-type=module tests/alerts.test.js
+node --experimental-default-type=module tests/budget.test.js
+node --experimental-default-type=module tests/backup.test.js
+```
 
-Prefer adding scripts to a project manifest so contributors can run the same commands everywhere.
+## Style And Naming
+Use two-space indentation, semicolons, single-quoted JavaScript strings, and `camelCase` names. Keep modules focused and use named exports. Prefer DOM event delegation for dynamic task cards and escape user-provided text before inserting HTML. Do not add a framework, build step, or duplicate stylesheet without a clear repository-wide decision.
 
-## Coding Style & Naming Conventions
-Use the style rules that match the language you introduce, and keep them consistent across the repository:
+## Data And Privacy
+Do not put trainee names, phone numbers, resident registration numbers, bank-account numbers, or other personal data in source, JSON, backup, test fixtures, or browser state. Store only task-definition data in `data/tasks.json`; store completion status, timestamps, memos, settings, and budget operations in localStorage. Task Master edits are candidates until exported and reviewed.
 
-- 2 spaces for indentation unless the language standard says otherwise
-- `camelCase` for variables and functions in JavaScript/TypeScript
-- `snake_case` for Python modules and functions
-- `PascalCase` for classes and UI components
-
-If you add formatters or linters, record them in the repo and run them before opening a PR.
-
-## Testing Guidelines
-Place tests close to the behavior they cover or under `tests/`. Name tests after the unit under test, for example `task-list.test.ts` or `test_scheduler.py`. Prefer small, deterministic tests, and add coverage for bug fixes rather than only happy paths.
-
-## Commit & Pull Request Guidelines
-Git history is not available in this environment, so no existing commit convention could be confirmed. Use concise imperative commits such as `Add retry handling` or `Fix date parsing`.
-
-For pull requests, include:
-
-- A short summary of the change
-- Any related issue or task link
-- Screenshots or sample output for UI or behavior changes
-- Notes on testing performed
+## Commits And Pull Requests
+Use concise imperative commits, for example `Add v0.7 task master groundwork`. Pull requests should explain behavior changes, list validation/tests run, identify data-schema changes, and include screenshots for UI changes. Never commit generated backups, personal data, or temporary local-server files.
 
 ## Agent Notes
-When making changes here, keep edits focused, update this guide if new tooling is added, and avoid introducing extra structure unless the project starts to require it.
+Inspect the existing structure before editing. Preserve unrelated user changes, keep the existing visual language, run tests and a browser smoke test after changes, and update `README.md` and the relevant specification when behavior or data contracts change.

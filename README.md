@@ -1,54 +1,59 @@
-# 수습기자 교육운영 미니리더
+# 수습기자 기본교육 운영 미니리더
 
-현재 버전: `v0.4`
-
-수습기자 기본교육의 사전준비부터 결과보고까지 업무를 체크리스트로 표준화하고, 교육 일정과 선행업무 의존성을 함께 확인하는 서버 없는 정적 웹입니다. 검증용 샘플 업무 20건이 포함되어 있습니다.
+현재 버전은 `v0.7`입니다. 사전준비부터 결과보고까지의 교육운영 업무를 체크리스트, 일정, 선행업무 경고, 예산·정산, 백업·복원으로 관리하는 서버 없는 정적 웹 앱입니다. 현재 `data/tasks.json`에는 검증용 샘플 20건만 있으며 실제 110건을 임의로 생성하지 않습니다.
 
 ## 실행 방법
 
-`data/tasks.json`을 브라우저에서 불러오므로 `file://`로 직접 열지 말고 Windows 로컬 웹 서버로 실행합니다.
+`data/tasks.json`을 `fetch`로 읽으므로 `index.html`을 `file://`로 직접 열지 않습니다. Windows PowerShell에서 프로젝트 폴더로 이동한 뒤 실행합니다.
 
 ```powershell
 python -m http.server 8000
 ```
 
-브라우저에서 [http://localhost:8000](http://localhost:8000)을 엽니다. Python이 없다면 VS Code Live Server 등 정적 파일 서버를 사용할 수 있습니다.
+브라우저에서 [http://localhost:8000](http://localhost:8000)을 엽니다. Python이 없다면 VS Code Live Server와 같은 정적 파일 서버를 사용합니다. 외부 프레임워크와 서버 프레임워크는 사용하지 않습니다.
 
-## 프로젝트 구조
+## 구조
 
 ```text
-index.html              화면 구조
-css/style.css           전체 스타일
-data/tasks.json         업무 원본 데이터(Single Source of Truth)
-data/tasks.schema.json  업무 데이터 JSON Schema
-docs/TASK_DATA_SPEC.md  업무 데이터 작성 규격
-docs/SCHEDULE_SPEC.md   일정 계산 및 저장 규격
-docs/ALERTS_SPEC.md     의존성 및 경고 규격
-js/app.js               앱 초기화, 설정/검색/필터/정렬 이벤트
-js/dashboard.js         업무·일정 요약과 단계별 진행률
-js/constants.js         단계·경고 정렬 공통 상수
-js/alerts.js            의존성, 일정, 위험, 단계 경고 계산
-js/schedule.js          날짜 계산, 일정 상태, 일정 조회
-js/tasks.js             업무 로딩, 카드 렌더링, 필터, 업무 이벤트
-js/search.js            업무명/설명/주의사항 검색
-js/storage.js           localStorage v3 저장/마이그레이션
-js/validator.js         업무 데이터 검증
+index.html                 화면 진입점
+css/style.css              단일 스타일시트
+data/tasks.json            업무 정의 원본
+data/tasks.schema.json     업무 JSON 구조
+js/app.js                  화면 이벤트와 상태 연결
+js/tasks.js                운영 업무 필터·카드 렌더링
+js/storage.js              localStorage v4 상태·마이그레이션
+js/schedule.js             일정 계산
+js/alerts.js               의존성·일정·위험 경고
+js/budget*.js              예산·집행·정산
+js/backup.js               운영데이터 백업·복원
+js/task-admin.js           Task Master 메모리 편집·검증 화면
+js/csv.js                  UTF-8 CSV 파싱·내보내기
+js/data-quality.js         구조 검증·품질 경고·완성도
+docs/                      기능·데이터 규격
+tests/                     순수 로직 회귀 테스트
 ```
 
-## 주요 기능
+## v0.7 업무 마스터
 
-- 교육명·시작일·종료일·마감임박 기준 설정
-- D-day, 교육일차, 종료일, 종료 후 기준의 실제 마감일 계산
-- 오늘·이번 주·마감임박·기한초과 일정 필터와 실제 마감일/위험도 정렬
-- 선행업무 미완료, 기한초과 필수업무, 고위험, 마감임박 중요업무 경고와 우선 확인 목록
-- 의존성 경고 확인 후 완료, 순환 의존성 데이터 검증
-- 완료 체크, 완료일, 메모, 검색, 단계·필수·미완료 필터, 전체·단계별 진행률
-- 브라우저 `localStorage`에 설정과 업무 상태만 저장하며 교육생 개인정보는 저장하지 않음
+상단의 `업무 마스터`에서 검색, 단계·활성 필터, 상세 확인, 신규·수정·삭제 후보 편집을 수행합니다. 수정 내용은 편집 세션에만 남고 `data/tasks.json`과 localStorage는 직접 변경하지 않습니다. ID prefix와 단계, 필수 필드, 위험도, 일정 형식, 의존성·순환을 검증하며 품질 경고와 입력 완성도 참고값을 분리해서 보여줍니다. 참조 중인 업무는 삭제할 수 없고 비활성화를 우선합니다.
 
-## 저장 구조와 마이그레이션
+CSV는 고정 23개 열과 UTF-8 BOM을 사용합니다. `completionCriteria`, `dependencies`, `documents`, `tags`는 `|`로 구분하고 문서는 `문서명::required` 또는 `문서명::optional` 형식입니다. 가져오기는 미리보기 후 정상 행만 편집 세션에 적용합니다. 반복 설정과 AI 점검까지 완전하게 보존하려면 후보 JSON 내보내기를 사용합니다.
 
-v3 저장 키는 `trainee-reporter-training-state-v3`이며 `version`, `projectId`, `settings`, `tasks`를 저장합니다. 업무 원본정보는 저장하지 않습니다. 기존 v2 상태는 완료상태와 메모를 유지한 채 최초 조회 시 v3로 자동 변환됩니다.
+## 실데이터 110건 전환 절차
 
-## 검증
+1. CSV 템플릿에 업무를 입력하고 개인정보를 제외합니다.
+2. ID와 단계, 필수 필드, 허용값, 의존성·순환 오류를 수정합니다.
+3. Task Master에서 미리보기와 품질 경고를 확인합니다.
+4. 검증 통과 후보 JSON을 내보내고 기존 운영데이터를 백업합니다.
+5. ID 변경 목록과 완료상태·메모 연결을 검토한 뒤 `data/tasks.json`을 교체합니다.
 
-별도 빌드 도구 없이 로컬 서버에서 실행합니다. 설정 저장/취소와 날짜 계산, 기존 v0.3 필터·진행률·체크·메모·새로고침 복원, 선행업무 완료·취소에 따른 경고 변화와 완료 확인창을 확인합니다. 상세 규칙은 `docs/SCHEDULE_SPEC.md`와 `docs/ALERTS_SPEC.md`를 참고합니다.
+## 테스트
+
+Node.js가 설치되어 있다면 다음과 같이 실행합니다.
+
+```powershell
+node --experimental-default-type=module tests/task-master.test.js
+node --experimental-default-type=module tests/alerts.test.js
+node --experimental-default-type=module tests/budget.test.js
+node --experimental-default-type=module tests/backup.test.js
+```

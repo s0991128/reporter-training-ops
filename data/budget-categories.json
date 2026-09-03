@@ -1,0 +1,8 @@
+[
+  {"id":"LECTURER","name":"강사료","active":true,"sortOrder":10},
+  {"id":"ACCOMMODATION","name":"숙박비","active":true,"sortOrder":20},
+  {"id":"TRANSPORT","name":"차량비","active":true,"sortOrder":30},
+  {"id":"MEAL","name":"식비","active":true,"sortOrder":40},
+  {"id":"SUPPLIES","name":"교육물품","active":true,"sortOrder":50},
+  {"id":"ETC","name":"기타","active":true,"sortOrder":999}
+]

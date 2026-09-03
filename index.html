@@ -16,6 +16,8 @@
           <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
         </div>
         <div class="topbar-actions">
+          <button id="task-admin-button" class="settings-button" type="button">업무 마스터</button>
+          <button id="data-button" class="settings-button" type="button">데이터 관리</button>
           <button id="settings-button" class="settings-button" type="button">교육일정 설정</button>
           <div class="header-status"><span class="status-dot"></span>브라우저에 안전하게 저장 중</div>
         </div>
@@ -51,6 +53,19 @@
           <div class="priority-panel"><div class="priority-heading"><h3>우선 확인 업무</h3><span>최대 5건</span></div><ol id="priority-task-list"><li class="priority-empty">업무 경고를 계산하는 중입니다.</li></ol></div>
         </section>
 
+        <section id="budget-summary" class="budget-summary" aria-label="예산 요약">
+          <div class="budget-summary-heading"><div><p class="eyebrow">BUDGET</p><h2>예산·정산</h2></div><button id="budget-button" class="settings-button" type="button">상세 관리</button></div>
+          <div class="budget-summary-metrics">
+            <article><span>총 계획예산</span><strong id="budget-total-planned">0원</strong></article>
+            <article><span>집행확정</span><strong id="budget-total-committed">0원</strong></article>
+            <article><span>지급완료</span><strong id="budget-total-paid">0원</strong></article>
+            <article><span>가용잔액</span><strong id="budget-total-available">0원</strong></article>
+            <article><span>집행률</span><strong id="budget-execution-rate">0.0%</strong></article>
+            <article><span>미정산</span><strong id="budget-pending-count">0건</strong></article>
+          </div>
+          <p id="budget-overrun" class="budget-overrun" hidden></p>
+        </section>
+
         <section class="workspace">
           <aside class="sidebar">
             <div class="section-heading"><div><p class="eyebrow">OVERVIEW</p><h2>단계별 현황</h2></div></div>
@@ -75,11 +90,101 @@
           </section>
         </section>
       </main>
+      <section id="budget-panel" class="settings-panel budget-panel" hidden role="dialog" aria-modal="true" aria-labelledby="budget-title">
+        <div class="settings-dialog budget-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">BUDGET & SETTLEMENT</p><h2 id="budget-title">예산·정산 관리</h2></div><button id="budget-close" class="settings-close" type="button" aria-label="예산창 닫기">×</button></div>
+          <p class="budget-privacy-note">계획예산과 업무 운영용 지출만 입력하세요. 개인정보 및 계좌정보는 저장하지 마세요.</p>
+          <section class="budget-detail-summary" aria-label="예산 상세 요약"><div><span>계획</span><strong id="detail-budget-planned">0원</strong></div><div><span>집행확정</span><strong id="detail-budget-committed">0원</strong></div><div><span>지급</span><strong id="detail-budget-paid">0원</strong></div><div><span>잔액</span><strong id="detail-budget-available">0원</strong></div><div><span>미정산</span><strong id="detail-budget-pending">0건</strong></div></section>
+          <section class="budget-section"><div class="budget-section-heading"><div><p class="eyebrow">PLAN</p><h3>항목별 계획예산</h3></div><span>0 이상의 정수</span></div><form id="budget-plan-form"><div id="budget-plan-fields" class="budget-plan-fields"></div><p id="budget-plan-error" class="budget-form-error" role="alert"></p><button class="settings-save" type="submit">계획예산 저장</button></form></section>
+          <section class="budget-section"><div class="budget-section-heading"><div><p class="eyebrow">TRANSACTIONS</p><h3>지출 등록</h3></div><span>개인정보 입력 금지</span></div><form id="transaction-form" class="transaction-form"><input id="transaction-edit-id" name="editId" type="hidden" /><label>예산항목<select id="transaction-category" name="categoryId" required></select></label><label>금액<input id="transaction-amount" name="amount" type="number" min="0" step="1" required /></label><label>상태<select id="transaction-status" name="status"><option value="PLANNED">지급 예정</option><option value="COMMITTED">집행확정</option><option value="PAID">지급완료</option><option value="CANCELLED">취소</option></select></label><label>날짜<input id="transaction-date" name="date" type="date" required /></label><label class="transaction-wide">내용<input id="transaction-description" name="description" type="text" maxlength="120" placeholder="예: 교육장 대관료" required /></label><label>관련업무<select id="transaction-task" name="taskId"></select></label><label>정산상태<select id="transaction-settlement" name="settlementStatus"><option value="NOT_REQUIRED">정산 불필요</option><option value="PENDING">미정산</option><option value="COMPLETED">정산완료</option></select></label><label class="transaction-wide">메모<textarea id="transaction-memo" name="memo" maxlength="300" placeholder="개인정보를 입력하지 마세요."></textarea></label><p id="transaction-form-error" class="budget-form-error transaction-wide" role="alert"></p><div class="settings-actions transaction-wide"><button id="transaction-cancel-edit" class="settings-cancel" type="button" hidden>수정 취소</button><button class="settings-save" type="submit">지출 저장</button></div></form></section>
+          <section class="budget-section"><div class="budget-section-heading"><div><p class="eyebrow">LEDGER</p><h3>지출 및 정산 대기</h3></div><span id="transaction-count">0건</span></div><div id="budget-category-table" class="budget-category-table"></div><div id="transaction-list" class="transaction-list"></div></section>
+        </div>
+      </section>
+      <section id="data-panel" class="settings-panel data-panel" hidden role="dialog" aria-modal="true" aria-labelledby="data-title">
+        <div class="settings-dialog data-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">DATA MANAGEMENT</p><h2 id="data-title">운영데이터 관리</h2></div><button id="data-close" class="settings-close" type="button" aria-label="데이터 관리창 닫기">×</button></div>
+          <p class="budget-privacy-note">백업파일에는 개인정보 및 계좌정보를 입력하지 마세요. 업무 원본은 백업하지 않으며 현재 `tasks.json`에서 다시 불러옵니다.</p>
+          <div class="data-status-grid"><div><span>최근 백업</span><strong id="data-last-backup">최근 백업 없음</strong></div><div><span>저장 위치</span><strong>현재 브라우저</strong></div></div>
+          <p id="backup-recommendation" class="backup-recommendation" hidden>운영데이터를 먼저 백업하는 것을 권장합니다.</p>
+          <div class="data-actions"><button id="backup-export" class="settings-save" type="button">운영데이터 내보내기</button><button id="backup-import" class="settings-cancel" type="button">운영데이터 가져오기</button><button id="data-reset" class="danger-button" type="button">전체 초기화</button></div>
+          <input id="backup-file-input" type="file" accept=".json,application/json" hidden />
+          <p id="data-message" class="data-message" role="status"></p>
+        </div>
+      </section>
+      <section id="backup-preview-panel" class="settings-panel backup-preview-panel" hidden role="dialog" aria-modal="true" aria-labelledby="backup-preview-title">
+        <div class="settings-dialog data-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">BACKUP PREVIEW</p><h2 id="backup-preview-title">복원 전 미리보기</h2></div><button id="backup-preview-close" class="settings-close" type="button" aria-label="백업 미리보기 닫기">×</button></div>
+          <div class="backup-preview-grid"><div><span>백업 생성일</span><strong id="preview-exported-at">-</strong></div><div><span>교육명</span><strong id="preview-training-name">-</strong></div><div><span>업무상태</span><strong id="preview-task-count">0건</strong></div><div><span>완료</span><strong id="preview-completed-count">0건</strong></div><div><span>예산항목</span><strong id="preview-category-count">0개</strong></div><div><span>지출</span><strong id="preview-transaction-count">0건</strong></div></div>
+          <p id="backup-preview-warning" class="backup-preview-warning"></p>
+          <p class="backup-replace-note">현재 운영데이터가 백업파일의 데이터로 교체됩니다.</p>
+          <div class="settings-actions"><button id="backup-preview-cancel" class="settings-cancel" type="button">취소</button><button id="backup-preview-restore" class="settings-save" type="button">가져오기</button></div>
+        </div>
+      </section>
+      <section id="reset-confirmation" class="settings-panel reset-confirmation" hidden role="dialog" aria-modal="true" aria-labelledby="reset-title">
+        <div class="settings-dialog confirmation-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">RESET DATA</p><h2 id="reset-title">전체 초기화 확인</h2></div><button id="reset-close" class="settings-close" type="button" aria-label="초기화 확인창 닫기">×</button></div>
+          <p class="dependency-confirm-message">모든 운영데이터를 초기화하시겠습니까?\n\n이 작업은 실행 후 되돌릴 수 없습니다.\n먼저 백업을 권장합니다.</p>
+          <div class="settings-actions"><button id="reset-cancel" class="settings-cancel" type="button">취소</button><button id="reset-confirm" class="danger-button" type="button">초기화</button></div>
+        </div>
+      </section>
       <section id="dependency-confirmation" class="settings-panel dependency-confirmation" hidden role="dialog" aria-modal="true" aria-labelledby="dependency-confirm-title">
         <div class="settings-dialog confirmation-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">DEPENDENCY CHECK</p><h2 id="dependency-confirm-title">완료 전 확인</h2></div><button id="dependency-confirm-close" class="settings-close" type="button" aria-label="확인창 닫기">×</button></div>
           <p id="dependency-confirm-message" class="dependency-confirm-message"></p>
           <div class="settings-actions"><button id="dependency-confirm-cancel" class="settings-cancel" type="button">취소</button><button id="dependency-confirm-proceed" class="settings-save" type="button">그래도 완료</button></div>
+        </div>
+      </section>
+      <section id="task-admin-panel" class="settings-panel task-admin-panel" hidden role="dialog" aria-modal="true" aria-labelledby="task-admin-title">
+        <div class="settings-dialog task-admin-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">TASK MASTER / V0.7</p><h2 id="task-admin-title">업무 마스터 관리</h2></div><button id="task-admin-close" class="settings-close" type="button" aria-label="업무 마스터 닫기">×</button></div>
+          <p class="admin-privacy-note"><strong>개인정보 입력 금지</strong> 업무 정의에는 교육생 이름, 전화번호, 주민번호, 계좌번호 등 개인정보를 입력하지 마세요. 개인정보 관련 업무는 처리 완료 여부만 관리합니다.</p>
+          <div id="task-admin-summary" class="task-admin-summary"></div>
+          <div class="admin-toolbar">
+            <label class="admin-search">검색<input id="admin-search" type="search" placeholder="ID, 업무명, 설명, 담당 검색" /></label>
+            <label>단계<select id="admin-phase-filter"><option value="전체">전체 단계</option><option value="사전준비">사전준비</option><option value="교육운영">교육운영</option><option value="종료처리">종료처리</option><option value="정산">정산</option><option value="결과보고">결과보고</option></select></label>
+            <label class="admin-check"><input id="admin-show-inactive" type="checkbox" /> 비활성 포함</label>
+            <span id="admin-task-count-label" class="admin-count-label">0건 표시</span>
+            <button class="settings-cancel" type="button" data-admin-action="new-task">새 업무</button>
+            <button class="settings-cancel" type="button" data-admin-action="import-csv">CSV 가져오기</button>
+            <button class="settings-cancel" type="button" data-admin-action="export-csv">CSV 내보내기</button>
+            <button class="settings-save" type="button" data-admin-action="export-json">후보 JSON 내보내기</button>
+            <button class="settings-cancel" type="button" data-admin-action="validate">검증 새로고침</button>
+          </div>
+          <input id="task-csv-input" type="file" accept=".csv,text/csv" hidden />
+          <p id="task-admin-message" class="task-admin-message" role="status"></p>
+          <section id="task-admin-validation" class="task-admin-validation" aria-label="업무 데이터 품질"></section>
+          <section class="task-admin-layout">
+            <div class="task-master-table-wrap"><table id="task-master-table" class="task-master-table"><thead><tr><th>ID / 업무명</th><th>단계</th><th>기준일</th><th>카테고리</th><th>필수</th><th>위험도</th><th>담당</th><th>선행</th><th>상태</th></tr></thead><tbody></tbody></table></div>
+            <div class="task-admin-detail">
+              <div id="task-admin-detail-view" class="task-admin-detail-view"></div>
+              <div id="task-admin-editor-wrap" hidden>
+                <div class="admin-editor-heading"><div><p class="eyebrow">TASK EDITOR</p><h3>업무 정의 편집</h3></div><span>메모·완료상태는 운영화면에서 관리</span></div>
+                <form id="task-admin-form" class="task-admin-form">
+                  <input name="originalId" type="hidden" />
+                  <div class="admin-form-grid admin-form-grid-3"><label>업무 ID<input name="id" type="text" required pattern="(PRE|OPS|CLS|FIN|RPT)-[0-9]{3}" /><button type="button" class="admin-inline-button" data-admin-action="suggest-id">ID 자동 제안</button></label><label>단계<select name="phase"></select></label><label>카테고리<select name="category"></select></label></div>
+                  <div class="admin-form-grid admin-form-grid-3"><label>기준일 유형<select name="timingType"></select></label><label>기준일 값<input name="timingValue" type="number" step="1" /></label><label>기준일 표시<input name="timingLabel" type="text" /></label></div>
+                  <div class="admin-form-grid admin-form-grid-2"><label>업무명<input name="title" type="text" required maxlength="160" /></label><label>담당역할<input name="assigneeRole" type="text" required maxlength="80" /></label></div>
+                  <label>업무 설명<textarea name="description" rows="3" required></textarea></label>
+                  <div class="admin-form-grid admin-form-grid-3"><label>예상소요시간(분)<input name="estimatedMinutes" type="number" min="0" step="1" required /></label><label>위험도<select name="riskLevel"></select></label><label class="admin-check"><input name="required" type="checkbox" /> 필수 업무</label></div>
+                  <fieldset><legend>완료기준</legend><div id="criteria-list" class="admin-array-list"></div><button class="admin-inline-button" type="button" data-admin-action="add-criteria">+ 완료기준 추가</button></fieldset>
+                  <fieldset><legend>선행업무</legend><div class="admin-dependency-picker"><input id="admin-dependency-search" type="search" placeholder="선행업무 검색" /><select id="admin-dependency-select"></select><button class="admin-inline-button" type="button" data-admin-action="add-dependency">추가</button></div><ul id="dependency-list" class="admin-selected-list"></ul></fieldset>
+                  <fieldset><legend>관련자료</legend><div id="documents-list" class="admin-array-list"></div><button class="admin-inline-button" type="button" data-admin-action="add-document">+ 관련자료 추가</button></fieldset>
+                  <fieldset><legend>인수인계 정보</legend><p class="admin-field-note">업무 노하우와 주의사항만 입력하고 개인정보는 입력하지 마세요.</p><label>주의사항<textarea name="handoverCaution" rows="2"></textarea></label><label>Know-how<textarea name="handoverKnowhow" rows="2"></textarea></label><label>이전 이슈<textarea name="handoverPreviousIssue" rows="2"></textarea></label></fieldset>
+                  <fieldset><legend>예산·반복·AI 설정</legend><div class="admin-form-grid admin-form-grid-2"><label class="admin-check"><input name="budgetRelated" type="checkbox" /> 예산 관련 업무</label><label>예산항목<input name="budgetCategory" type="text" /></label><label class="admin-check"><input name="repeatEnabled" type="checkbox" /> 반복 업무</label><label>반복 규칙<input name="repeatRule" type="text" placeholder="예: 매 교육기수" /></label><label class="admin-check"><input name="aiEnabled" type="checkbox" /> AI 점검 활성화</label><label>AI 키워드(| 구분)<input name="aiKeywords" type="text" /></label></div></fieldset>
+                  <div class="admin-form-grid admin-form-grid-3"><label>태그(| 구분)<input name="tags" type="text" /></label><label>정렬순서<input name="sortOrder" type="number" min="0" step="1" required /></label><label class="admin-check"><input name="active" type="checkbox" /> 운영 활성</label></div>
+                  <p id="task-admin-form-error" class="settings-error" role="alert"></p>
+                  <div class="settings-actions"><button type="button" class="settings-cancel" data-admin-action="cancel-edit">취소</button><button type="button" class="danger-button" data-admin-action="delete-selected">삭제</button><button type="submit" class="settings-save">메모리 저장</button></div>
+                </form>
+              </div>
+            </div>
+          </section>
+          <section id="csv-import-preview" class="csv-import-preview" hidden>
+            <div class="admin-editor-heading"><div><p class="eyebrow">CSV PREVIEW</p><h3>가져오기 전 검토</h3></div><button class="settings-close" type="button" data-admin-action="cancel-csv" aria-label="CSV 미리보기 닫기">×</button></div>
+            <div class="csv-preview-summary"><div><span>전체 행</span><strong data-preview-total>0건</strong></div><div><span>정상</span><strong data-preview-valid>0건</strong></div><div><span>경고</span><strong data-preview-warning>0건</strong></div><div><span>오류</span><strong data-preview-error>0건</strong></div></div>
+            <div class="csv-preview-table-wrap"><table class="csv-preview-table"><thead><tr><th>행</th><th>ID</th><th>업무명</th><th>검토 결과</th></tr></thead><tbody data-preview-table></tbody></table></div>
+            <p class="admin-field-note">오류 행은 제외하고 정상 행만 편집 세션에 가져올 수 있습니다. 원본 파일과 `data/tasks.json`은 변경되지 않습니다.</p>
+            <div class="settings-actions"><button class="settings-cancel" type="button" data-admin-action="cancel-csv">전체 수정 후 다시 시도</button><button class="settings-save" type="button" data-admin-action="apply-csv">정상 데이터만 가져오기</button></div>
+          </section>
         </div>
       </section>
       <section id="settings-panel" class="settings-panel" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
