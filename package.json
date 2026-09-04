@@ -1,6 +1,6 @@
 {
   "name": "reporter-training-ops",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,6 +8,6 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/backup.test.js && node tests/gap-analysis.test.js && node tests/checklist.test.js && node tests/handover.test.js && node tests/server.test.js"
+    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/backup.test.js && node tests/gap-analysis.test.js && node tests/checklist.test.js && node tests/checklist-metadata.test.js && node tests/handover.test.js && node tests/server.test.js"
   }
 }

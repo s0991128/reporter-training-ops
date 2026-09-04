@@ -1,10 +1,10 @@
 # 수습기자 기본교육 운영 미니리더
 
-현재 버전은 `v0.11`입니다. 실제 운영 체크리스트 117건은 `업무목록.csv`를 정본으로 사용하고, 기존 `data/tasks.json` 업무 마스터·일정·경고·예산·정산·백업·AI 기능과 분리해 관리합니다. 담당자 교체 시에는 `인수인계` 화면에서 현재 진행구간, 우선 확인 업무, 메모, 최근 처리, 구간별 현황을 확인하고 읽기용 HTML 보고서를 만들 수 있습니다. AI 정밀분석은 키를 서버에만 둔 Node.js 서버를 통해 OpenAI Responses API와 연결합니다. 현재 `data/tasks.json`에는 검증용 샘플 20건이 있으며 체크리스트 CSV와 임의로 합치지 않습니다.
+현재 버전은 `v0.12`입니다. 실제 운영 체크리스트 117건은 `업무목록.csv`를 정본으로 사용하고, `data/checklist-metadata.json`이 각 CSV key에 일정·단계·업무 분류 정보를 연결합니다. 운영 화면의 대시보드·일정·경고·예산 업무 선택·AI 비교는 이 117건을 사용하며, `data/tasks.json`은 별도의 검증용 20건 업무 마스터와 편집 화면 원본으로 유지합니다. 담당자 교체 시에는 `인수인계` 화면에서 현재 진행구간, 우선 확인 업무, 메모, 최근 처리, 구간별 현황을 확인하고 읽기용 HTML 보고서를 만들 수 있습니다. AI 정밀분석은 키를 서버에만 둔 Node.js 서버를 통해 OpenAI Responses API와 연결합니다.
 
 ## 실행 방법
 
-`data/tasks.json`을 `fetch`로 읽으므로 `index.html`을 `file://`로 직접 열지 않습니다. 권장 실행 환경은 Node.js 24 LTS이며, 로컬 서버는 기본적으로 `127.0.0.1`에만 바인딩됩니다.
+`업무목록.csv`, `data/checklist-metadata.json`, `data/tasks.json`을 `fetch`로 읽으므로 `index.html`을 `file://`로 직접 열지 않습니다. 권장 실행 환경은 Node.js 24 LTS이며, 로컬 서버는 기본적으로 `127.0.0.1`에만 바인딩됩니다.
 
 ```powershell
 $env:HOST = "127.0.0.1"
@@ -61,10 +61,13 @@ css/style.css              단일 스타일시트
 업무목록.csv              실제 운영 체크리스트 정본 117건
 data/tasks.json            구조화 업무 마스터 원본
 data/tasks.schema.json     업무 JSON 구조
+data/checklist-metadata.json 117건 CSV key별 연결 메타데이터
+data/checklist-metadata.schema.json 메타데이터 구조
 js/app.js                  화면 이벤트와 상태 연결
 js/tasks.js                운영 업무 필터·카드 렌더링
 js/storage.js              localStorage v6 상태·마이그레이션
 js/checklist.js            체크리스트 CSV 로더·검증·상태 계산
+js/checklist-metadata.js   CSV 업무를 운영 task로 변환
 js/checklist-ui.js         체크리스트 화면 렌더링
 js/handover.js             인수인계 요약·우선순위·최근 이력 계산
 js/handover-export.js      읽기용 self-contained HTML 보고서 생성
@@ -87,9 +90,16 @@ Dockerfile                 Node.js 24 서버 배포 이미지
 docs/                      기능·데이터 규격
 tests/                     순수 로직 회귀 테스트
 docs/HANDOVER_SPEC.md      인수인계 모드·데이터 계약
+docs/V0.12_CURRENT_STATUS.md  현재 통합 상태·담당자 검증 순서
 ```
 
-## v0.11 담당자 인수인계 모드
+## v0.12 실제 업무 연결
+
+`업무목록.csv`의 117개 key는 `data/checklist-metadata.json`의 117개 항목과 1:1로 검증됩니다. CSV의 문장·순서는 변경하지 않고, 메타데이터를 운영 task로 변환하여 대시보드·일정·경고·예산 연결·AI 비교의 입력으로 사용합니다. 운영 task 상태는 기존 localStorage `checklist` 영역에만 저장되므로 `tasks` 원본 상태와 중복되지 않습니다.
+
+현재 연결된 단계 수는 사전준비 23건, 교육운영 89건, 종료처리 1건, 정산 2건, 결과보고 2건입니다. phase·timing은 CSV 구간에서 연결했고 일부 종료 후 업무는 업무 내용에 따라 분류했습니다. required, riskLevel, 담당역할, 완료기준, dependencies, 예산연계는 `PENDING_REVIEW` 상태의 임시값이므로 실제 담당자 검토 전에는 확정 기준으로 사용하지 않습니다. 다음 단계는 담당자와 117건을 검토해 메타데이터만 `REVIEWED`로 갱신하는 것입니다.
+
+## 담당자 인수인계 모드
 
 상단의 `인수인계`에서 업무목록.csv 117건을 인수인계 관점으로 재구성합니다. 현재 진행구간은 적용 가능한 업무 중 처음 미완료 구간을 기준으로 하되, 뒤 구간에 이미 완료·진행중 업무가 있으면 가장 멀리 진행된 구간을 표시하고 이전 구간 미완료 경고를 함께 보여줍니다. `NOT_APPLICABLE`은 진행률과 미완료 계산에서 제외합니다.
 

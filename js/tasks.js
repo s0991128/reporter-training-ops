@@ -102,8 +102,9 @@ export function renderTasks(tasks, state, list, allTasks = tasks, budgetCategori
 
 function applyCompletion(taskId, checked, state, onChange) {
   const patch = { status:checked ? TASK_STATUS.COMPLETED : TASK_STATUS.IN_PROGRESS, completedAt:checked ? new Date().toISOString() : null };
-  state.tasks[taskId] = { ...getTaskState(state, taskId), ...patch };
-  saveTaskState(taskId, patch);
+  const next = saveTaskState(taskId, patch);
+  if (/^task-\d+$/.test(String(taskId))) state.checklist[taskId] = next;
+  else state.tasks[taskId] = next;
   onChange();
 }
 
@@ -126,8 +127,9 @@ export function handleTaskEvent(event, state, onChange, allTasks = [], onBlocked
   if (action === 'memo-input') {
     const current = getTaskState(state, taskId);
     const patch = { memo:event.target.value, status:current.status === TASK_STATUS.NOT_STARTED ? TASK_STATUS.IN_PROGRESS : current.status };
-    state.tasks[taskId] = { ...getTaskState(state, taskId), ...patch };
-    saveTaskState(taskId, patch);
+    const next = saveTaskState(taskId, patch);
+    if (/^task-\d+$/.test(String(taskId))) state.checklist[taskId] = next;
+    else state.tasks[taskId] = next;
   }
   if (action === 'memo') card.querySelector('.memo-area')?.classList.toggle('open');
 }

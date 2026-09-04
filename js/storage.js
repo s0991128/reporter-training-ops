@@ -187,6 +187,7 @@ export function resetState() {
 }
 
 export function getTaskState(state, taskId) {
+  if (/^task-\d+$/.test(String(taskId))) return getChecklistState(state, taskId);
   return state?.tasks?.[taskId] || { status:TASK_STATUS.NOT_STARTED, completedAt:null, memo:'' };
 }
 
@@ -210,6 +211,7 @@ export function saveSettings(settings) {
 }
 
 export function saveTaskState(taskId, patch) {
+  if (/^task-\d+$/.test(String(taskId))) return saveChecklistState(taskId, patch);
   const state = loadState();
   state.tasks[taskId] = { ...getTaskState(state, taskId), ...patch };
   persistState(state);

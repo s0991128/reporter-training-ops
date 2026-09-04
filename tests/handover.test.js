@@ -62,7 +62,7 @@ assert.equal(loadState().checklistHistory.length, 200);
 globalThis.localStorage = originalLocalStorage;
 
 const reportHtml = buildHandoverReportHtml(checklist.items, checklist.groups, { ...state, handover:{ note:'다음 담당자 메모', updatedAt:null } }, new Date('2026-09-03T06:42:00.000Z'));
-assert.match(reportHtml, /HANDOVER REPORT \/ V0\.11/);
+assert.match(reportHtml, /HANDOVER REPORT \/ V0\.12/);
 assert.match(reportHtml, /업무목록\.csv/);
 assert.match(reportHtml, /117건/);
 assert.match(reportHtml, /다음 담당자 메모/);

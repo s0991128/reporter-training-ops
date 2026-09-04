@@ -19,6 +19,7 @@ import { buildHandoverReportHtml, getHandoverReportFilename } from './handover-e
 
 const state = loadState();
 let tasks = [];
+let operationalTasks = [];
 let budgetCategories = [];
 let selectedStage = '전체';
 let search = '';
@@ -75,9 +76,11 @@ async function initializeTasks() {
     adminSession = createTaskAdminSession(tasks);
     try {
       checklistData = await loadChecklist();
+      operationalTasks = checklistData.tasks || [];
       checklistLoadError = null;
     } catch (error) {
       checklistLoadError = error;
+      operationalTasks = [];
       checklistData = { items:[], groups:[], report:error.report || null };
       console.error(`[업무목록.csv] ${error.report?.errors?.join(' | ') || error.message}`);
     }
@@ -104,16 +107,16 @@ function compareByRisk(first, second) {
 }
 
 function render() {
-  const operationalTasks = tasks.filter(task => task.active !== false);
-  renderDashboard(operationalTasks, state, budgetCategories);
-  let visibleTasks = filterTasks(operationalTasks, state, { stage:selectedStage, search, filters:activeFilters, settings:state.settings, allTasks:operationalTasks });
+  const activeTasks = (operationalTasks.length ? operationalTasks : tasks).filter(task => task.active !== false);
+  renderDashboard(activeTasks, state, budgetCategories);
+  let visibleTasks = filterTasks(activeTasks, state, { stage:selectedStage, search, filters:activeFilters, settings:state.settings, allTasks:activeTasks });
   if (sort === 'due-date') visibleTasks = [...visibleTasks].sort(compareByDueDate);
   if (sort === 'risk') visibleTasks = [...visibleTasks].sort(compareByRisk);
   if (sort === 'status') visibleTasks = [...visibleTasks].sort((a, b) => Number(getTaskState(state, a.id).status === TASK_STATUS.COMPLETED) - Number(getTaskState(state, b.id).status === TASK_STATUS.COMPLETED));
   if (sort === 'category') visibleTasks = [...visibleTasks].sort((a, b) => a.category.localeCompare(b.category, 'ko'));
-  renderTasks(visibleTasks, state, taskList, operationalTasks, budgetCategories);
-  renderBudgetPanel(state, budgetCategories, operationalTasks);
-  document.querySelector('#result-summary').textContent = `${visibleTasks.length}개 업무 표시 중 · 전체 ${operationalTasks.length}개`;
+  renderTasks(visibleTasks, state, taskList, activeTasks, budgetCategories);
+  renderBudgetPanel(state, budgetCategories, activeTasks);
+  document.querySelector('#result-summary').textContent = `${visibleTasks.length}개 업무 표시 중 · 전체 ${activeTasks.length}개`;
   if (checklistView && !checklistView.hidden) renderChecklistView();
   if (handoverView && !handoverView.hidden) renderHandoverView();
 }
@@ -483,7 +486,7 @@ async function handleBackupFile(event) {
   event.target.value = '';
   const result = await readBackupFile(file);
   if (!result.ok) { openDataPanel(); showDataMessage(result.error, true); return; }
-  const preview = previewBackup(result.backup, tasks);
+  const preview = previewBackup(result.backup, [...tasks, ...operationalTasks]);
   if (!preview.valid) { openDataPanel(); showDataMessage(preview.errors.join(' '), true); return; }
   pendingBackup = result.backup;
   closeDataPanel();
@@ -497,7 +500,7 @@ function replaceAppState(nextState) {
 
 function restorePendingBackup() {
   if (!pendingBackup) return;
-  const result = restoreBackup(pendingBackup, tasks);
+  const result = restoreBackup(pendingBackup, [...tasks, ...operationalTasks]);
   if (!result.success) {
     closeBackupPreview();
     openDataPanel();
@@ -570,13 +573,13 @@ function getTodayInputDate() {
 function populateBudgetOptions() {
   const categorySelect = document.querySelector('#transaction-category');
   const taskSelect = document.querySelector('#transaction-task');
-  const operationalTasks = tasks.filter(task => task.active !== false);
+  const activeTasks = (operationalTasks.length ? operationalTasks : tasks).filter(task => task.active !== false);
   const categoryValue = categorySelect.value;
   const taskValue = taskSelect.value;
   categorySelect.innerHTML = budgetCategories.map(category => `<option value="${category.id}">${category.name}</option>`).join('');
-  taskSelect.innerHTML = '<option value="">관련 업무 없음</option>' + operationalTasks.map(task => `<option value="${task.id}">${task.id} ${task.title}</option>`).join('');
+  taskSelect.innerHTML = '<option value="">관련 업무 없음</option>' + activeTasks.map(task => `<option value="${task.id}">${task.id} ${task.title}</option>`).join('');
   if (budgetCategories.some(category => category.id === categoryValue)) categorySelect.value = categoryValue;
-  if (operationalTasks.some(task => task.id === taskValue)) taskSelect.value = taskValue;
+  if (activeTasks.some(task => task.id === taskValue)) taskSelect.value = taskValue;
 }
 
 function openBudgetPanel() {
@@ -654,7 +657,7 @@ function saveTransactionForm(event) {
     memo:String(formData.get('memo') || '').trim(),
     createdAt:existing?.createdAt
   };
-  const validation = validateTransaction(transaction, budgetCategories, tasks);
+  const validation = validateTransaction(transaction, budgetCategories, operationalTasks.length ? operationalTasks : tasks);
   const error = document.querySelector('#transaction-form-error');
   if (!validation.valid) { error.textContent = validation.errors.join(' '); return; }
   saveTransaction(transaction);
@@ -734,7 +737,7 @@ function setGapMessage(message = '', isError = false) {
 
 function renderGapView() {
   const results = gapSession?.results || [];
-  document.querySelector('#gap-master-count').textContent = `${tasks.length}개 업무`;
+  document.querySelector('#gap-master-count').textContent = `${operationalTasks.length || tasks.length}개 업무`;
   document.querySelector('#gap-source-count').textContent = `${gapSources.length}개 파일`;
   document.querySelector('#gap-analysis-run').disabled = gapSources.length === 0 || gapAnalysisRunning;
   renderGapSources(document.querySelector('#gap-source-list'), gapSources, sourceId => {
@@ -817,8 +820,9 @@ async function runGapAnalysis() {
   setGapMessage(mode === AI_MODES.REMOTE_AI ? 'AI가 업무자료와 현재 업무를 비교하고 있습니다.' : '분석자료와 현재 업무 마스터를 비교하는 중입니다.');
   renderGapView();
   try {
-    const result = await analyzeGap({ sources:gapSources, tasks, mode });
-    gapSession = { sessionId:`ANALYSIS-${Date.now()}`, createdAt:new Date().toISOString(), sourceCount:gapSources.length, taskCount:tasks.length, mode, results:result.results };
+    const analysisTasks = operationalTasks.length ? operationalTasks : tasks;
+    const result = await analyzeGap({ sources:gapSources, tasks:analysisTasks, mode });
+    gapSession = { sessionId:`ANALYSIS-${Date.now()}`, createdAt:new Date().toISOString(), sourceCount:gapSources.length, taskCount:analysisTasks.length, mode, results:result.results };
     setGapMessage(result.error || `분석이 완료되었습니다. ${result.results.length}건의 검토 후보가 있습니다.`, Boolean(result.error));
   } finally {
     gapAnalysisRunning = false;
@@ -1046,9 +1050,9 @@ document.querySelector('.quick-filters').addEventListener('click', event => {
   if (!button) return;
   toggleFilter(button.dataset.filter);
 });
-taskList.addEventListener('click', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
-taskList.addEventListener('change', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
-taskList.addEventListener('input', event => handleTaskEvent(event, state, render, tasks, showDependencyConfirmation));
+taskList.addEventListener('click', event => handleTaskEvent(event, state, render, operationalTasks.length ? operationalTasks : tasks, showDependencyConfirmation));
+taskList.addEventListener('change', event => handleTaskEvent(event, state, render, operationalTasks.length ? operationalTasks : tasks, showDependencyConfirmation));
+taskList.addEventListener('input', event => handleTaskEvent(event, state, render, operationalTasks.length ? operationalTasks : tasks, showDependencyConfirmation));
 document.querySelector('#alert-summary').addEventListener('click', event => {
   const filterButton = event.target.closest('[data-alert-filter]');
   if (filterButton) toggleFilter(filterButton.dataset.alertFilter);

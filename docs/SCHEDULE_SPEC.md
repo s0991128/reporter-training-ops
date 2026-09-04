@@ -22,7 +22,7 @@
 
 `YYYY-MM-DD`는 UTC 파싱을 사용하지 않고 로컬 연·월·일로 파싱합니다. 날짜 비교 전 시간값을 제거해 브라우저 timezone에 따른 하루 차이를 방지합니다. `schedule.js`의 `formatTaskDate`는 화면에 `YYYY.MM.DD` 형식으로 표시합니다.
 
-## localStorage v3
+## 저장 및 운영 기준
 
 업무 원본은 저장하지 않고 사용자 설정과 상태만 `trainee-reporter-training-state-v3`에 저장합니다.
 
@@ -44,6 +44,6 @@
 
 기존 v2 키는 업무 상태를 유지한 채 v3로 자동 변환됩니다. 기존 `END-*`, `BUD-*` ID는 현재 `CLS-*`, `FIN-*` ID로 연결됩니다.
 
-## 실제 110개 업무 입력
+## 실제 117건 업무 입력
 
-`data/tasks.json`의 기존 ID와 `timing` 규칙을 유지합니다. 시작일 기준 업무는 `D_DAY`, 교육 기간 중 업무는 `TRAINING_DAY`, 종료 당일은 `END_DAY`, 종료 후 업무는 `AFTER_END`를 사용하고, 수동 날짜 업무는 `MANUAL`로 둡니다. 이름·전화번호·주민등록번호·계좌번호 등 개인정보는 입력하지 않습니다.
+117건 운영 업무는 `업무목록.csv` key와 `data/checklist-metadata.json`의 `timing` 연결을 사용합니다. 시작일 기준 업무는 `D_DAY`, 교육 기간 중 업무는 `TRAINING_DAY`, 종료 당일은 `END_DAY`, 종료 후 업무는 `AFTER_END`를 사용하고, 수동 날짜 업무는 `MANUAL`로 둡니다. 이름·전화번호·주민등록번호·계좌번호 등 개인정보는 입력하지 않습니다.

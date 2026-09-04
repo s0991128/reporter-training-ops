@@ -1,7 +1,7 @@
 import { PROJECT_ID, STORAGE_VERSION, loadState, replaceState, resetState } from './storage.js';
 
 export const BACKUP_VERSION = 1;
-export const APPLICATION_VERSION = '0.11';
+export const APPLICATION_VERSION = '0.12';
 export const LAST_BACKUP_KEY = 'reporter-training-ops-last-backup-v1';
 
 const TRANSACTION_STATUSES = ['PLANNED', 'COMMITTED', 'PAID', 'CANCELLED'];

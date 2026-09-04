@@ -6,7 +6,7 @@ v0.5 예산 기능은 교육 운영비의 계획, 집행 상태, 지급 여부, 
 
 ## 원본 데이터
 
-`data/budget-categories.json`이 예산항목의 단일 기준이다. 항목 ID는 `LECTURER`, `ACCOMMODATION`, `TRANSPORT`, `MEAL`, `SUPPLIES`, `ETC`를 사용한다. `data/tasks.json`의 `budget`는 업무와 예산항목의 관계만 표현하며 계획금액이나 집행금액을 포함하지 않는다.
+`data/budget-categories.json`이 예산항목의 단일 기준이다. 항목 ID는 `LECTURER`, `ACCOMMODATION`, `TRANSPORT`, `MEAL`, `SUPPLIES`, `ETC`를 사용한다. 운영 화면의 업무-예산 연결은 117건 CSV key에 병합된 메타데이터를 사용하며, 계획금액이나 집행금액은 업무 원본에 포함하지 않는다.
 
 이 항목들은 기능 검증을 위한 샘플 분류이며 특정 기관의 실제 예산과목을 의미하지 않는다.
 

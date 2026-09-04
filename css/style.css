@@ -439,12 +439,14 @@ button:disabled { cursor:not-allowed; opacity:.48; }
 .checklist-item-heading { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
 .checklist-key { color:#7890a2; font:600 9px 'Space Grotesk',sans-serif; }
 .checklist-status-label { padding:3px 6px; border-radius:4px; color:#748490; background:#f0f4f6; font-size:9px; }
+.checklist-review-label { padding:3px 6px; border-radius:4px; color:#8a5a22; background:#fff5df; font-size:9px; }
 .checklist-status-completed .checklist-status-label { color:#26755d; background:var(--green-soft); }
 .checklist-status-in_progress .checklist-status-label { color:#a26a32; background:var(--orange-soft); }
 .checklist-status-not_applicable .checklist-status-label { color:#75808a; background:#edf1f3; }
 .checklist-work { margin:0; color:#405466; font-size:12px; line-height:1.6; }
 .checklist-status-completed .checklist-work { color:#81918e; text-decoration:line-through; text-decoration-color:#acc8bf; }
 .checklist-note, .checklist-completed-at { margin:5px 0 0; color:#8a99a4; font-size:10px; line-height:1.45; }
+.checklist-metadata { margin:5px 0 0; color:#718393; font-size:10px; line-height:1.45; }
 .checklist-completed-at { color:#82a093; }
 .checklist-item-controls { display:flex; align-items:flex-start; justify-content:flex-end; gap:7px; min-width:150px; padding-top:22px; }
 .checklist-complete-control, .checklist-mini-check { display:flex; align-items:center; gap:5px; color:#536b7b; font-size:10px; white-space:nowrap; }

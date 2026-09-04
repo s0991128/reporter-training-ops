@@ -2,14 +2,14 @@
 
 ## 목적
 
-`data/tasks.json`은 업무 정의의 Single Source of Truth다. 현재 v0.7은 실제 110개 업무를 임의로 생성하지 않고, 검증용 20개 샘플만 제공한다. 브라우저의 업무 마스터 편집은 메모리 세션에서만 수행하며 원본 JSON이나 localStorage를 직접 변경하지 않는다.
+`data/tasks.json`은 구조화 업무 마스터의 기준이며 검증용 20건 샘플을 제공한다. 실제 운영 문장·순서의 기준은 `업무목록.csv`이고, `data/checklist-metadata.json`이 117개 key를 구조화 업무 정보와 연결한다. 브라우저의 업무 마스터 편집은 메모리 세션에서만 수행하며 원본 JSON이나 localStorage를 직접 변경하지 않는다.
 
 ## 관리자 원칙
 
 - 일반 운영 화면에는 `active: false` 업무를 표시하지 않는다.
 - ID는 `PRE`, `OPS`, `CLS`, `FIN`, `RPT` prefix와 단계가 일치해야 한다.
 - 업무를 삭제하기 전에 다른 업무의 `dependencies` 참조 여부를 검사한다. 참조 중이면 삭제하지 않고 비활성화를 우선한다.
-- 완료상태와 메모는 업무 원본과 분리된 localStorage v4 상태다. 향후 업무 목록을 교체할 때 ID가 유지된 상태만 보존하고 신규 ID는 미착수로 시작한다.
+- 완료상태와 메모는 업무 원본과 분리된 localStorage v6 상태다. CSV key가 유지된 상태만 보존하고 신규 key는 미착수로 시작한다.
 
 ## CSV 계약
 

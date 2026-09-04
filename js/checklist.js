@@ -1,5 +1,6 @@
 import { parseCsv } from './csv.js';
 import { CHECKLIST_STATUS, getChecklistState } from './storage.js';
+import { createOperationalTasks, loadChecklistMetadata, mergeChecklistMetadata, validateChecklistMetadata } from './checklist-metadata.js';
 
 export const CHECKLIST_HEADERS = Object.freeze(['구간', '업무', '비고', 'key']);
 export const CHECKLIST_SECTION_ORDER = Object.freeze([
@@ -98,7 +99,7 @@ export function groupChecklistItems(rows = []) {
   return groups;
 }
 
-export async function loadChecklist(url = './업무목록.csv') {
+export async function loadChecklist(url = './업무목록.csv', metadataUrl = './data/checklist-metadata.json') {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`업무목록.csv 로드 실패: HTTP ${response.status}`);
   const parsed = parseChecklistCsv(await response.text());
@@ -108,7 +109,15 @@ export async function loadChecklist(url = './업무목록.csv') {
     error.report = report;
     throw error;
   }
-  return { ...report, report, items:report.rows, groups:groupChecklistItems(report.rows) };
+  const metadata = await loadMetadataForEnvironment(metadataUrl);
+  const metadataReport = validateChecklistMetadata(metadata, report.rows);
+  if (!metadataReport.valid) {
+    const error = new Error('체크리스트 메타데이터와 업무목록.csv 연결 오류');
+    error.report = { ...report, metadataReport };
+    throw error;
+  }
+  const items = mergeChecklistMetadata(report.rows, metadata);
+  return { ...report, report, metadata, metadataReport, items, tasks:createOperationalTasks(items), groups:groupChecklistItems(items) };
 }
 
 export function isThreeCheckItem(item) { return asText(item?.note) === CHECKLIST_THREE_CHECK_NOTE; }
@@ -134,6 +143,17 @@ export function getChecklistItemState(item, state) {
     return { ...entry, status, checks };
   }
   return { ...entry, checks:[] };
+}
+
+async function loadMetadataForEnvironment(url) {
+  try {
+    return await loadChecklistMetadata(url);
+  } catch (error) {
+    if (typeof process === 'undefined' || !process.versions?.node || !String(url).startsWith('.') || !/Failed to parse URL|Invalid URL/.test(error?.message || '')) throw error;
+    const { readFile } = await import('node:fs/promises');
+    const metadata = JSON.parse(await readFile(new URL('../data/checklist-metadata.json', import.meta.url), 'utf8'));
+    return metadata;
+  }
 }
 
 export function getChecklistStats(items = [], state) {
@@ -176,7 +196,7 @@ export function filterChecklistItems(items = [], state, { query = '', filter = '
   const normalizedQuery = asText(query).trim().toLocaleLowerCase('ko-KR');
   return items.filter(item => {
     const itemState = getChecklistItemState(item, state);
-    const searchable = [item.section, item.work, item.note, itemState.memo].map(asText).join('\n').toLocaleLowerCase('ko-KR');
+    const searchable = [item.section, item.work, item.note, item.phase, item.metadata?.category, item.metadata?.assigneeRole, itemState.memo].map(asText).join('\n').toLocaleLowerCase('ko-KR');
     const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
     const matchesSection = section === '전체' || item.section === section;
     const matchesFilter = filter === 'all'

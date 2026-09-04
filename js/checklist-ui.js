@@ -20,6 +20,9 @@ function formatCompletedAt(value) {
 function renderItem(item, state) {
   const itemState = getChecklistItemState(item, state);
   const threeCheck = isThreeCheckItem(item);
+  const metadata = item.metadata || {};
+  const reviewPending = metadata.reviewStatus === 'PENDING_REVIEW';
+  const dependencyText = metadata.dependencies?.length ? `선행 ${metadata.dependencies.join(', ')}` : '선행업무 미등록';
   const disabled = itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? 'disabled' : '';
   const checks = threeCheck ? itemState.checks.map((checked, index) => `<label class="checklist-mini-check"><input type="checkbox" data-checklist-action="detail-check" data-checklist-index="${index}" ${checked ? 'checked' : ''} ${disabled} /> ${index + 1}차</label>`).join('') : '';
   const completionControl = threeCheck
@@ -27,7 +30,7 @@ function renderItem(item, state) {
     : `<label class="checklist-complete-control"><input type="checkbox" data-checklist-action="status-check" ${itemState.status === CHECKLIST_STATUS.COMPLETED ? 'checked' : ''} ${disabled} /> 완료</label>`;
   const notApplicableLabel = itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? '적용 업무로 되돌리기' : '해당없음';
   return `<article class="checklist-item checklist-status-${itemState.status.toLowerCase()}" data-checklist-key="${escapeHtml(item.key)}">
-    <div class="checklist-item-copy"><div class="checklist-item-heading"><span class="checklist-key">${escapeHtml(item.key)}</span><span class="checklist-status-label">${statusLabel(itemState.status)}</span></div><p class="checklist-work">${escapeHtml(item.work)}</p>${item.note ? `<p class="checklist-note">비고 · ${escapeHtml(item.note)}</p>` : ''}${itemState.completedAt ? `<p class="checklist-completed-at">마지막 완료 ${escapeHtml(formatCompletedAt(itemState.completedAt))}</p>` : ''}</div>
+    <div class="checklist-item-copy"><div class="checklist-item-heading"><span class="checklist-key">${escapeHtml(item.key)}</span><span class="checklist-status-label">${statusLabel(itemState.status)}</span>${reviewPending ? '<span class="checklist-review-label">메타데이터 검토 필요</span>' : ''}</div><p class="checklist-work">${escapeHtml(item.work)}</p><p class="checklist-metadata">${escapeHtml(item.phase)} · ${escapeHtml(metadata.category || '기타')} · 담당 ${escapeHtml(metadata.assigneeRole || '검토 필요')} · ${escapeHtml(dependencyText)}</p>${item.note ? `<p class="checklist-note">비고 · ${escapeHtml(item.note)}</p>` : ''}${itemState.completedAt ? `<p class="checklist-completed-at">마지막 완료 ${escapeHtml(formatCompletedAt(itemState.completedAt))}</p>` : ''}</div>
     <div class="checklist-item-controls">${completionControl}<button type="button" class="checklist-na-button" data-checklist-action="toggle-na">${notApplicableLabel}</button></div>
     <label class="checklist-memo"><span>인수인계 메모</span><textarea data-checklist-action="memo" maxlength="300" placeholder="강사 회신 대기 중 · 내일 오전 재확인 등">${escapeHtml(itemState.memo)}</textarea></label>
   </article>`;
