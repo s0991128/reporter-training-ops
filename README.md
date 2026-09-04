@@ -1,6 +1,6 @@
 # 수습기자 기본교육 운영 미니리더
 
-현재 버전은 `v0.7`입니다. 사전준비부터 결과보고까지의 교육운영 업무를 체크리스트, 일정, 선행업무 경고, 예산·정산, 백업·복원으로 관리하는 서버 없는 정적 웹 앱입니다. 현재 `data/tasks.json`에는 검증용 샘플 20건만 있으며 실제 110건을 임의로 생성하지 않습니다.
+현재 버전은 `v0.7`입니다. 사전준비부터 결과보고까지의 교육운영 업무를 체크리스트, 일정, 선행업무 경고, 예산·정산, 백업·복원으로 관리하는 프레임워크 없는 브라우저 앱입니다. 현재 `data/tasks.json`에는 검증용 샘플 20건만 있으며 실제 110건을 임의로 생성하지 않습니다. Node.js 실행 계층은 로컬 개발 서버와 health 확인만 제공하며 AI 호출 기능은 포함하지 않습니다.
 
 ## 실행 방법
 
@@ -11,6 +11,38 @@ python -m http.server 8000
 ```
 
 브라우저에서 [http://localhost:8000](http://localhost:8000)을 엽니다. Python이 없다면 VS Code Live Server와 같은 정적 파일 서버를 사용합니다. 외부 프레임워크와 서버 프레임워크는 사용하지 않습니다.
+
+## 회사 PC 설치 및 로컬 실행
+
+권장 버전은 Node.js 24 LTS입니다. GitHub 저장소 권한을 확인한 뒤 저장소를 가져옵니다.
+
+```powershell
+git --version
+node --version
+npm --version
+git clone https://github.com/s0991128/reporter-training-ops.git
+Set-Location reporter-training-ops
+git status
+git log --oneline -5
+```
+
+매일 작업을 시작할 때는 `git pull --ff-only origin main`을 사용합니다. 설치 직후 회귀 테스트는 `npm test`로 실행합니다. Node 서버는 로컬 보안을 위해 기본적으로 loopback에만 바인딩합니다.
+
+```powershell
+$env:HOST = "127.0.0.1"
+npm start
+```
+
+브라우저에서 [http://localhost:8080](http://localhost:8080)을 열고, 별도 PowerShell에서 `Invoke-RestMethod http://localhost:8080/api/health`를 실행합니다. 응답의 `aiConfigured`는 환경변수 존재 여부만 나타내며 실제 AI 호출이나 키 검증을 수행하지 않습니다. API 키를 소스, JSON, GitHub에 저장하지 마세요.
+
+## Docker 실행
+
+Docker에서는 컨테이너 외부 접속을 위해서만 `HOST=0.0.0.0`을 사용합니다. Dockerfile에는 외부 패키지가 없어 `npm install`을 실행하지 않습니다.
+
+```powershell
+docker build -t reporter-training-ops .
+docker run --rm -p 8080:8080 reporter-training-ops
+```
 
 ## 구조
 
@@ -29,6 +61,9 @@ js/backup.js               운영데이터 백업·복원
 js/task-admin.js           Task Master 메모리 편집·검증 화면
 js/csv.js                  UTF-8 CSV 파싱·내보내기
 js/data-quality.js         구조 검증·품질 경고·완성도
+server/server.js           Node 정적 서버 및 /api/health
+package.json               Node 24 기준 실행·테스트 명령
+Dockerfile                 HOST=0.0.0.0 컨테이너 실행 설정
 docs/                      기능·데이터 규격
 tests/                     순수 로직 회귀 테스트
 ```
@@ -52,8 +87,7 @@ CSV는 고정 23개 열과 UTF-8 BOM을 사용합니다. `completionCriteria`, `
 Node.js가 설치되어 있다면 다음과 같이 실행합니다.
 
 ```powershell
-node --experimental-default-type=module tests/task-master.test.js
-node --experimental-default-type=module tests/alerts.test.js
-node --experimental-default-type=module tests/budget.test.js
-node --experimental-default-type=module tests/backup.test.js
+npm test
 ```
+
+개별 테스트가 필요하면 `node tests/task-master.test.js`처럼 실행합니다. `package.json`의 `type: module`이 적용되므로 별도 `--experimental-default-type` 옵션은 필요하지 않습니다.

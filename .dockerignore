@@ -1,0 +1,7 @@
+.git
+.gitignore
+node_modules
+.env
+.env.*
+reporter-training-backup-*.json
+reporter-training-backups
