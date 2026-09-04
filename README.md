@@ -30,6 +30,8 @@ npm test
 
 매일 작업 시작 시에는 `git pull --ff-only origin main`을 사용합니다. 설치 후 기존 터미널에서 `node`를 찾지 못하면 터미널을 새로 열어 PATH를 갱신합니다.
 
+PowerShell 실행 정책이 `npm.ps1` 실행을 차단하면 같은 폴더에서 `npm.cmd test`와 `npm.cmd start`를 사용합니다.
+
 ## Docker 실행
 
 Dockerfile은 Node.js 24 LTS를 사용하고, 외부 npm 패키지가 없어 `npm install`을 실행하지 않습니다. 컨테이너에서만 외부 접속을 허용하도록 `HOST=0.0.0.0`을 명시합니다.
