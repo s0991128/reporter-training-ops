@@ -16,7 +16,12 @@
           <p class="subtitle">교육 전 과정을 한눈에 확인하고, 다음 업무를 놓치지 않도록 관리합니다.</p>
         </div>
         <div class="topbar-actions">
+          <button id="checklist-button" class="settings-button checklist-menu-button" type="button">업무 체크리스트</button>
+          <button id="handover-button" class="settings-button" type="button">인수인계</button>
+          <button id="dashboard-button" class="settings-button" type="button">운영 대시보드</button>
           <button id="task-admin-button" class="settings-button" type="button">업무 마스터</button>
+          <button id="budget-menu-button" class="settings-button" type="button">예산·정산</button>
+          <button id="gap-analysis-button" class="settings-button" type="button">AI 누락점검</button>
           <button id="data-button" class="settings-button" type="button">데이터 관리</button>
           <button id="settings-button" class="settings-button" type="button">교육일정 설정</button>
           <div class="header-status"><span class="status-dot"></span>브라우저에 안전하게 저장 중</div>
@@ -24,6 +29,7 @@
       </header>
 
       <main>
+        <div id="dashboard-view">
         <section class="summary-grid" aria-label="업무 요약">
           <article class="summary-card summary-total"><div><span class="card-label">전체 업무</span><strong id="total-count">0</strong></div><span class="card-icon">ALL</span></article>
           <article class="summary-card summary-complete"><div><span class="card-label">완료</span><strong id="complete-count">0</strong></div><span class="card-icon">OK</span></article>
@@ -89,7 +95,75 @@
             <div id="task-list" class="task-list" aria-live="polite"></div>
           </section>
         </section>
+        </div>
+        <section id="checklist-view" class="checklist-view" hidden aria-labelledby="checklist-title">
+          <div class="checklist-page-heading">
+            <div><p class="eyebrow">OPERATIONS CHECKLIST / V0.11</p><h2 id="checklist-title">업무 체크리스트</h2><p>담당자가 바뀌어도 현재 구간, 완료 업무, 남은 업무를 바로 이어볼 수 있습니다.</p><p id="checklist-current-section" class="checklist-current-section">현재 진행 구간 · 업무목록.csv를 불러오는 중</p></div>
+            <button id="checklist-back" class="settings-cancel" type="button">운영 대시보드</button>
+          </div>
+          <p class="checklist-privacy-note"><strong>개인정보 주의</strong> 주민등록번호, 전화번호, 계좌번호 등 개인정보는 메모에 입력하지 마세요. 개인정보 관련 업무는 처리 여부만 체크하며 개인정보를 별도 저장하지 않습니다.</p>
+          <section id="checklist-summary" class="checklist-summary" aria-label="체크리스트 요약">
+            <article><span>전체 업무</span><strong data-checklist-summary="total">0</strong></article>
+            <article><span>완료</span><strong data-checklist-summary="complete">0</strong></article>
+            <article><span>진행</span><strong data-checklist-summary="progress">0</strong></article>
+            <article><span>미완료</span><strong data-checklist-summary="pending">0</strong></article>
+            <article><span>해당없음</span><strong data-checklist-summary="notApplicable">0</strong></article>
+            <article class="checklist-summary-progress"><div><span>진행률</span><strong data-checklist-summary="percent">0%</strong></div><div class="progress-track"><span data-checklist-progress></span></div><small data-checklist-caption>업무목록.csv를 불러오는 중입니다.</small></article>
+          </section>
+          <div class="checklist-layout">
+            <aside class="checklist-sidebar"><div class="checklist-sidebar-heading"><p class="eyebrow">SECTIONS</p><h3>업무 구간</h3></div><nav id="checklist-section-nav" class="checklist-section-nav-list" aria-label="업무 구간"></nav></aside>
+            <section class="checklist-content">
+              <div class="checklist-toolbar"><label class="checklist-search"><span aria-hidden="true">⌕</span><input id="checklist-search" type="search" placeholder="구간, 업무, 비고, 메모 검색" /></label><div class="checklist-filters" role="group" aria-label="체크리스트 상태 필터"><button type="button" class="checklist-filter active" data-checklist-filter="all">전체</button><button type="button" class="checklist-filter" data-checklist-filter="incomplete">미완료</button><button type="button" class="checklist-filter" data-checklist-filter="completed">완료</button><button type="button" class="checklist-filter" data-checklist-filter="in_progress">진행중</button><button type="button" class="checklist-filter" data-checklist-filter="not_applicable">해당없음</button></div></div>
+              <p id="checklist-validation-message" class="checklist-validation-message" role="status"></p>
+              <p id="checklist-result-summary" class="checklist-result-summary">업무목록.csv를 불러오는 중입니다.</p>
+              <div id="checklist-groups" class="checklist-groups" aria-live="polite"></div>
+            </section>
+          </div>
+        </section>
+        <section id="handover-view" class="handover-view" hidden aria-labelledby="handover-title">
+          <div class="handover-page-heading">
+            <div><p class="eyebrow">HANDOVER MODE / V0.11</p><h2 id="handover-title">담당자 인수인계</h2><p>새 담당자가 지금의 업무 상황을 바로 파악하고 이어갈 수 있도록 정리합니다.</p><p id="handover-source-note" class="handover-source-note">체크리스트 원본을 확인하는 중입니다.</p></div>
+            <div class="handover-heading-actions"><button id="handover-checklist-button" class="settings-cancel" type="button">업무 체크리스트</button><button id="handover-export" class="settings-save" type="button">인수인계 보고서 만들기</button></div>
+          </div>
+          <p class="handover-privacy-note"><strong>공유 전 확인</strong> 인수인계 보고서에는 입력한 업무 메모가 포함됩니다. 외부 공유 전에 내용을 확인하세요. 개인 연락처, 주민등록번호, 계좌번호 등은 메모에 입력하지 마세요.</p>
+          <p id="handover-export-message" class="handover-export-message" role="status"></p>
+          <section class="handover-summary" aria-label="인수인계 요약">
+            <div class="handover-current-card"><span class="eyebrow">CURRENT SECTION</span><span>현재 진행구간</span><strong id="handover-current-section">확인 중</strong></div>
+            <div><span>전체 업무</span><strong data-handover-stat="total">0</strong></div><div><span>적용 업무</span><strong data-handover-stat="applicable">0</strong></div><div><span>완료</span><strong data-handover-stat="complete">0</strong></div><div><span>진행중</span><strong data-handover-stat="progress">0</strong></div><div><span>미완료</span><strong data-handover-stat="incomplete">0</strong></div><div><span>해당없음</span><strong data-handover-stat="notApplicable">0</strong></div><div class="handover-progress-card"><span>전체 진행률</span><strong data-handover-stat="percent">0%</strong><div class="progress-track"><span id="handover-progress-bar"></span></div></div>
+          </section>
+          <p id="handover-previous-warning" class="handover-warning" hidden></p>
+          <div class="handover-primary-grid">
+            <section class="handover-panel handover-first-panel"><div class="handover-section-heading"><div><p class="eyebrow">START HERE</p><h3>먼저 확인할 업무</h3></div><span>우선순위 기준</span></div><p class="handover-help">이전 구간 미완료 → 진행중 → 메모가 있는 미완료 → 현재 구간 순서로 표시합니다.</p><div id="handover-first-list" class="handover-item-list"></div></section>
+            <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">NEXT</p><h3>다음 업무</h3></div><span>체크리스트 순서 기준</span></div><div id="handover-next-task" class="handover-item-list"></div></section>
+          </div>
+          <div class="handover-secondary-grid">
+            <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">IN PROGRESS</p><h3>진행중 업무 전체</h3></div></div><div id="handover-inprogress-list" class="handover-item-list"></div></section>
+            <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">OVERDUE IN FLOW</p><h3>이전 구간 미완료 업무</h3></div></div><div id="handover-previous-list" class="handover-item-list"></div></section>
+          </div>
+          <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">MEMOS</p><h3>메모가 있는 미완료 업무</h3></div><span>담당자 확인 필요</span></div><div id="handover-memo-incomplete-list" class="handover-item-list"></div><details class="handover-completed-memos"><summary>완료 업무의 메모도 보기</summary><div id="handover-memo-completed-list" class="handover-item-list"></div></details></section>
+          <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">RECENT ACTIVITY</p><h3>최근 처리</h3></div><span>최근 변경 10건</span></div><div id="handover-history-list" class="handover-history-list"></div><button id="handover-history-more" class="handover-more-button" type="button" hidden>더 보기</button></section>
+          <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">PROGRESS BY SECTION</p><h3>구간별 진행현황</h3></div></div><div id="handover-section-list" class="handover-section-list"></div></section>
+          <section class="handover-panel"><div class="handover-section-heading"><div><p class="eyebrow">FULL CHECKLIST</p><h3>전체 체크리스트 상태</h3></div><span>업무목록.csv 기준</span></div><div id="handover-full-list" class="handover-section-list"></div></section>
+          <section class="handover-panel handover-note-panel"><div class="handover-section-heading"><div><p class="eyebrow">NOTE FOR NEXT OWNER</p><h3>다음 담당자에게 남길 메모</h3></div><span>최대 2,000자</span></div><label class="handover-note-label"><span>종합 인수인계 메모</span><textarea id="handover-note" maxlength="2000" placeholder="현장교육 버스 일정 확정 필요.&#10;2주차 식당은 후보 2곳 검토 중.&#10;정산 증빙은 업체 회신 대기."></textarea></label><p class="handover-note-warning">개인 연락처, 주민등록번호, 계좌번호 등 개인정보는 인수인계 메모에 입력하지 마세요.</p><div class="handover-note-actions"><p id="handover-note-message" class="handover-note-message" role="status"></p><button id="handover-note-save" class="settings-save" type="button">종합 메모 저장</button></div></section>
+          <section class="handover-panel handover-procedure"><div class="handover-section-heading"><div><p class="eyebrow">OWNER CHANGE</p><h3>담당자 변경 시</h3></div></div><ol><li>기존 담당자가 운영데이터 JSON을 백업합니다.</li><li>기존 담당자가 인수인계 HTML 보고서를 만듭니다.</li><li>승인된 내부 수단으로 두 파일을 전달합니다.</li><li>새 담당자가 최신 프로그램에서 JSON을 가져옵니다.</li><li>인수인계 화면과 HTML 보고서를 비교합니다.</li></ol></section>
+        </section>
       </main>
+      <section id="gap-analysis-panel" class="settings-panel gap-analysis-panel" hidden role="dialog" aria-modal="true" aria-labelledby="gap-analysis-title">
+        <div class="settings-dialog gap-analysis-dialog">
+          <div class="settings-dialog-heading"><div><p class="eyebrow">AI GAP CHECK / V0.9</p><h2 id="gap-analysis-title">AI 업무 누락점검</h2></div><button id="gap-analysis-close" class="settings-close" type="button" aria-label="AI 누락점검 닫기">×</button></div>
+          <p class="gap-privacy-note"><strong>개인정보 주의</strong> 개인정보, 주민등록번호, 계좌번호, 전화번호, 이메일 등 민감정보가 포함된 문서를 AI 분석자료로 사용하지 마세요. 감지된 자료는 AI로 자동 전송하지 않습니다. 원본문서는 브라우저에 영구 저장하지 않습니다.</p>
+          <div class="gap-overview-grid">
+            <div><span>현재 업무 마스터</span><strong id="gap-master-count">0개 업무</strong></div>
+            <div><span>분석자료</span><strong id="gap-source-count">0개 파일</strong></div>
+            <div><span>분석 모드</span><label><select id="gap-analysis-mode"><option value="LOCAL_RULE">기본 비교 · 브라우저 규칙</option><option value="REMOTE_AI">AI 정밀분석 · 서버 필요</option></select></label></div>
+          </div>
+          <div class="gap-source-toolbar"><label class="gap-file-picker">분석자료 추가<input id="gap-source-input" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json" multiple /></label><button id="gap-analysis-run" class="settings-save" type="button" disabled>누락점검 실행</button></div>
+          <p class="gap-supported-note">현재 버전은 텍스트, Markdown, CSV, JSON 파일을 지원합니다. PDF, DOCX, HWP, HWPX는 지원하지 않습니다.</p>
+          <p id="gap-analysis-message" class="gap-analysis-message" role="status"></p>
+          <section class="gap-sources-section" aria-labelledby="gap-sources-title"><div class="gap-section-heading"><div><p class="eyebrow">SOURCES</p><h3 id="gap-sources-title">분석자료</h3></div><span>메모리에서만 관리</span></div><div id="gap-source-list" class="gap-source-list"></div></section>
+          <section class="gap-results-section" aria-labelledby="gap-results-title"><div class="gap-section-heading"><div><p class="eyebrow">ANALYSIS RESULTS</p><h3 id="gap-results-title">분석 결과</h3></div><span>신뢰도는 검토 우선순위 지표입니다</span></div><div id="gap-confidence-summary" class="gap-confidence-summary"><div><span>전체 후보</span><strong id="gap-count-all">0</strong></div><div><span>높은 확인 필요</span><strong id="gap-count-high">0</strong></div><div><span>중간 확인 필요</span><strong id="gap-count-medium">0</strong></div><div><span>낮은 확인 필요</span><strong id="gap-count-low">0</strong></div></div><div id="gap-result-summary" class="gap-result-summary"><button type="button" data-gap-filter="all" class="active">전체</button><button type="button" data-gap-filter="NEW_TASK">신규업무 후보</button><button type="button" data-gap-filter="ENRICH_EXISTING">기존업무 보강</button><button type="button" data-gap-filter="DUPLICATE">이미 반영</button><button type="button" data-gap-filter="high">높은 확인 필요</button><span class="gap-confidence-note">HIGH/MEDIUM/LOW는 사실 확률이 아니라 확인 순서를 위한 참고값입니다.</span></div><div id="gap-result-list" class="gap-result-list"></div></section>
+        </div>
+      </section>
       <section id="budget-panel" class="settings-panel budget-panel" hidden role="dialog" aria-modal="true" aria-labelledby="budget-title">
         <div class="settings-dialog budget-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">BUDGET & SETTLEMENT</p><h2 id="budget-title">예산·정산 관리</h2></div><button id="budget-close" class="settings-close" type="button" aria-label="예산창 닫기">×</button></div>
@@ -114,7 +188,7 @@
       <section id="backup-preview-panel" class="settings-panel backup-preview-panel" hidden role="dialog" aria-modal="true" aria-labelledby="backup-preview-title">
         <div class="settings-dialog data-dialog">
           <div class="settings-dialog-heading"><div><p class="eyebrow">BACKUP PREVIEW</p><h2 id="backup-preview-title">복원 전 미리보기</h2></div><button id="backup-preview-close" class="settings-close" type="button" aria-label="백업 미리보기 닫기">×</button></div>
-          <div class="backup-preview-grid"><div><span>백업 생성일</span><strong id="preview-exported-at">-</strong></div><div><span>교육명</span><strong id="preview-training-name">-</strong></div><div><span>업무상태</span><strong id="preview-task-count">0건</strong></div><div><span>완료</span><strong id="preview-completed-count">0건</strong></div><div><span>예산항목</span><strong id="preview-category-count">0개</strong></div><div><span>지출</span><strong id="preview-transaction-count">0건</strong></div></div>
+          <div class="backup-preview-grid"><div><span>백업 생성일</span><strong id="preview-exported-at">-</strong></div><div><span>교육명</span><strong id="preview-training-name">-</strong></div><div><span>업무상태</span><strong id="preview-task-count">0건</strong></div><div><span>완료</span><strong id="preview-completed-count">0건</strong></div><div><span>체크리스트 상태</span><strong id="preview-checklist-count">0건</strong></div><div><span>체크리스트 완료</span><strong id="preview-checklist-completed-count">0건</strong></div><div><span>예산항목</span><strong id="preview-category-count">0개</strong></div><div><span>지출</span><strong id="preview-transaction-count">0건</strong></div></div>
           <p id="backup-preview-warning" class="backup-preview-warning"></p>
           <p class="backup-replace-note">현재 운영데이터가 백업파일의 데이터로 교체됩니다.</p>
           <div class="settings-actions"><button id="backup-preview-cancel" class="settings-cancel" type="button">취소</button><button id="backup-preview-restore" class="settings-save" type="button">가져오기</button></div>
@@ -136,7 +210,7 @@
       </section>
       <section id="task-admin-panel" class="settings-panel task-admin-panel" hidden role="dialog" aria-modal="true" aria-labelledby="task-admin-title">
         <div class="settings-dialog task-admin-dialog">
-          <div class="settings-dialog-heading"><div><p class="eyebrow">TASK MASTER / V0.7</p><h2 id="task-admin-title">업무 마스터 관리</h2></div><button id="task-admin-close" class="settings-close" type="button" aria-label="업무 마스터 닫기">×</button></div>
+          <div class="settings-dialog-heading"><div><p class="eyebrow">TASK MASTER / V0.8</p><h2 id="task-admin-title">업무 마스터 관리</h2></div><button id="task-admin-close" class="settings-close" type="button" aria-label="업무 마스터 닫기">×</button></div>
           <p class="admin-privacy-note"><strong>개인정보 입력 금지</strong> 업무 정의에는 교육생 이름, 전화번호, 주민번호, 계좌번호 등 개인정보를 입력하지 마세요. 개인정보 관련 업무는 처리 완료 여부만 관리합니다.</p>
           <div id="task-admin-summary" class="task-admin-summary"></div>
           <div class="admin-toolbar">
@@ -159,6 +233,7 @@
               <div id="task-admin-detail-view" class="task-admin-detail-view"></div>
               <div id="task-admin-editor-wrap" hidden>
                 <div class="admin-editor-heading"><div><p class="eyebrow">TASK EDITOR</p><h3>업무 정의 편집</h3></div><span>메모·완료상태는 운영화면에서 관리</span></div>
+                <div id="admin-ai-reference" class="admin-ai-reference" hidden><strong>AI 누락점검 참고</strong><p></p></div>
                 <form id="task-admin-form" class="task-admin-form">
                   <input name="originalId" type="hidden" />
                   <div class="admin-form-grid admin-form-grid-3"><label>업무 ID<input name="id" type="text" required pattern="(PRE|OPS|CLS|FIN|RPT)-[0-9]{3}" /><button type="button" class="admin-inline-button" data-admin-action="suggest-id">ID 자동 제안</button></label><label>단계<select name="phase"></select></label><label>카테고리<select name="category"></select></label></div>
@@ -199,7 +274,7 @@
           </form>
         </div>
       </section>
-      <footer><span>수습기자 교육운영 미니리더</span><span>샘플 데이터 20건 · 개인정보 미수집</span></footer>
+      <footer><span>수습기자 교육운영 미니리더</span><span>v0.11 · 업무 마스터 20건 · 운영 체크리스트 117건 · 개인정보 미수집</span></footer>
     </div>
     <script type="module" src="js/app.js"></script>
   </body>

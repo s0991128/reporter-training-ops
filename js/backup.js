@@ -1,11 +1,15 @@
 import { PROJECT_ID, STORAGE_VERSION, loadState, replaceState, resetState } from './storage.js';
 
 export const BACKUP_VERSION = 1;
-export const APPLICATION_VERSION = '0.7';
+export const APPLICATION_VERSION = '0.11';
 export const LAST_BACKUP_KEY = 'reporter-training-ops-last-backup-v1';
 
 const TRANSACTION_STATUSES = ['PLANNED', 'COMMITTED', 'PAID', 'CANCELLED'];
 const SETTLEMENT_STATUSES = ['NOT_REQUIRED', 'PENDING', 'COMPLETED'];
+const CHECKLIST_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'NOT_APPLICABLE'];
+const CHECKLIST_HISTORY_TYPES = ['STATUS_CHANGED', 'SUBCHECK_CHANGED', 'MEMO_UPDATED'];
+const CHECKLIST_HISTORY_LIMIT = 200;
+const HANDOVER_NOTE_LIMIT = 2000;
 const SENSITIVE_KEY_PATTERN = /resident|registration|account|phone|address|email|주민|계좌|전화|주소|이메일/i;
 
 function isObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -109,6 +113,40 @@ function validateBudget(budget, errors, isLegacy) {
   });
 }
 
+function validateChecklist(checklist, errors) {
+  if (checklist === undefined) return;
+  if (!isObject(checklist)) { errors.push('checklist 구조를 확인할 수 없습니다.'); return; }
+  Object.entries(checklist).forEach(([key, entry]) => {
+    if (!isObject(entry)) { errors.push(`체크리스트 ${key} 상태 구조가 올바르지 않습니다.`); return; }
+    if (!CHECKLIST_STATUSES.includes(entry.status)) errors.push(`체크리스트 ${key} 상태가 올바르지 않습니다.`);
+    if (entry.completedAt !== null && entry.completedAt !== undefined && Number.isNaN(new Date(entry.completedAt).getTime())) errors.push(`체크리스트 ${key} 완료일이 올바르지 않습니다.`);
+    if (entry.updatedAt !== null && entry.updatedAt !== undefined && Number.isNaN(new Date(entry.updatedAt).getTime())) errors.push(`체크리스트 ${key} 마지막 변경시각이 올바르지 않습니다.`);
+    if (typeof entry.memo !== 'string') errors.push(`체크리스트 ${key} 메모가 올바르지 않습니다.`);
+    if (!Array.isArray(entry.checks) || entry.checks.length > 3 || entry.checks.some(value => typeof value !== 'boolean')) errors.push(`체크리스트 ${key} 세부 체크가 올바르지 않습니다.`);
+  });
+}
+
+function validateChecklistHistory(history, errors) {
+  if (history === undefined) return;
+  if (!Array.isArray(history)) { errors.push('checklistHistory는 배열이어야 합니다.'); return; }
+  if (history.length > CHECKLIST_HISTORY_LIMIT) errors.push(`checklistHistory는 최근 ${CHECKLIST_HISTORY_LIMIT}건까지만 보관할 수 있습니다.`);
+  history.forEach((entry, index) => {
+    if (!isObject(entry)) { errors.push(`체크리스트 변경이력 ${index + 1}번 구조가 올바르지 않습니다.`); return; }
+    if (typeof entry.taskKey !== 'string' || !entry.taskKey) errors.push(`체크리스트 변경이력 ${index + 1}번 업무 key가 없습니다.`);
+    if (!CHECKLIST_HISTORY_TYPES.includes(entry.type)) errors.push(`체크리스트 변경이력 ${index + 1}번 유형이 올바르지 않습니다.`);
+    if (typeof entry.at !== 'string' || Number.isNaN(new Date(entry.at).getTime())) errors.push(`체크리스트 변경이력 ${index + 1}번 시각이 올바르지 않습니다.`);
+    if (entry.from !== undefined && typeof entry.from !== 'string') errors.push(`체크리스트 변경이력 ${index + 1}번 이전 상태가 올바르지 않습니다.`);
+    if (entry.to !== undefined && typeof entry.to !== 'string') errors.push(`체크리스트 변경이력 ${index + 1}번 이후 상태가 올바르지 않습니다.`);
+  });
+}
+
+function validateHandover(handover, errors) {
+  if (handover === undefined) return;
+  if (!isObject(handover)) { errors.push('handover 구조를 확인할 수 없습니다.'); return; }
+  if (typeof handover.note !== 'string' || handover.note.length > HANDOVER_NOTE_LIMIT) errors.push('종합 인수인계 메모 형식이 올바르지 않습니다.');
+  if (handover.updatedAt !== null && handover.updatedAt !== undefined && Number.isNaN(new Date(handover.updatedAt).getTime())) errors.push('종합 인수인계 메모 변경시각이 올바르지 않습니다.');
+}
+
 export function validateBackup(backup, tasks = []) {
   const errors = [];
   const warnings = [];
@@ -134,6 +172,9 @@ export function validateBackup(backup, tasks = []) {
     if (unknownTaskIds.length) warnings.push(`현재 버전에서 찾을 수 없는 업무상태 ${unknownTaskIds.length}건이 있습니다.`);
   }
   validateBudget(data.budget, errors, Number(data.version) < STORAGE_VERSION);
+  validateChecklist(data.checklist, errors);
+  validateChecklistHistory(data.checklistHistory, errors);
+  validateHandover(data.handover, errors);
   if (containsSensitiveKey(backup)) errors.push('백업파일에 개인정보 필드가 포함되어 있습니다.');
   return { valid:errors.length === 0, errors, warnings, unknownTaskIds };
 }
@@ -142,6 +183,7 @@ export function previewBackup(backup, tasks = []) {
   const validation = validateBackup(backup, tasks);
   const data = isObject(backup?.data) ? backup.data : {};
   const taskStates = isObject(data.tasks) ? Object.values(data.tasks) : [];
+  const checklistStates = isObject(data.checklist) ? Object.values(data.checklist) : [];
   const plans = isObject(data.budget?.plans) ? data.budget.plans : {};
   const transactions = Array.isArray(data.budget?.transactions) ? data.budget.transactions : [];
   return {
@@ -152,7 +194,9 @@ export function previewBackup(backup, tasks = []) {
     taskCount:taskStates.length,
     completedCount:taskStates.filter(isCompletedTaskState).length,
     categoryCount:Object.keys(plans).length,
-    transactionCount:transactions.length
+    transactionCount:transactions.length,
+    checklistCount:checklistStates.length,
+    checklistCompletedCount:checklistStates.filter(item => item?.status === 'COMPLETED').length
   };
 }
 

@@ -1,0 +1,13 @@
+version: axhub/v1
+name: reporter-training-ops
+
+runtime:
+  port: 8080
+  health_path: /api/health
+
+build:
+  framework: node
+  install: npm install
+  start: npm start
+  dockerfile: Dockerfile
+  deploy_method: docker

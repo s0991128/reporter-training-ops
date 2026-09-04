@@ -1,16 +1,20 @@
-export const STORAGE_KEY = 'trainee-reporter-training-state-v4';
-export const STORAGE_VERSION = 4;
+export const STORAGE_KEY = 'trainee-reporter-training-state-v6';
+export const STORAGE_VERSION = 6;
 export const PROJECT_ID = 'reporter-training-ops';
 export const TASK_STATUS = Object.freeze({ NOT_STARTED:'NOT_STARTED', IN_PROGRESS:'IN_PROGRESS', COMPLETED:'COMPLETED' });
+export const CHECKLIST_STATUS = Object.freeze({ NOT_STARTED:'NOT_STARTED', IN_PROGRESS:'IN_PROGRESS', COMPLETED:'COMPLETED', NOT_APPLICABLE:'NOT_APPLICABLE' });
 export const DEFAULT_SETTINGS = Object.freeze({ trainingName:'', trainingStartDate:'', trainingEndDate:'', dueSoonDays:3 });
+export const CHECKLIST_HISTORY_LIMIT = 200;
+export const HANDOVER_NOTE_LIMIT = 2000;
 
 const LEGACY_TASK_ID_MAP = Object.freeze({ 'END-001':'CLS-001', 'END-003':'CLS-002', 'BUD-001':'FIN-001', 'BUD-002':'FIN-002', 'BUD-003':'FIN-003' });
-const LEGACY_STORAGE_KEYS = ['trainee-reporter-training-state-v3', 'trainee-reporter-training-state-v2', 'trainee-reporter-training-state-v1'];
+const LEGACY_STORAGE_KEYS = ['trainee-reporter-training-state-v5', 'trainee-reporter-training-state-v4', 'trainee-reporter-training-state-v3', 'trainee-reporter-training-state-v2', 'trainee-reporter-training-state-v1'];
 const TRANSACTION_STATUSES = ['PLANNED', 'COMMITTED', 'PAID', 'CANCELLED'];
 const SETTLEMENT_STATUSES = ['NOT_REQUIRED', 'PENDING', 'COMPLETED'];
+const CHECKLIST_HISTORY_TYPES = ['STATUS_CHANGED', 'SUBCHECK_CHANGED', 'MEMO_UPDATED'];
 
 function createEmptyState() {
-  return { version:STORAGE_VERSION, projectId:PROJECT_ID, settings:{ ...DEFAULT_SETTINGS }, tasks:{}, budget:{ plans:{}, transactions:[] } };
+  return { version:STORAGE_VERSION, projectId:PROJECT_ID, settings:{ ...DEFAULT_SETTINGS }, tasks:{}, checklist:{}, checklistHistory:[], handover:{ note:'', updatedAt:null }, budget:{ plans:{}, transactions:[] } };
 }
 
 function normalizeSettings(settings = {}) {
@@ -53,6 +57,62 @@ function normalizeTaskEntries(tasks = {}) {
   return normalized;
 }
 
+function normalizeUpdatedAt(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeChecklistEntry(entry = {}) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) entry = {};
+  const checks = Array.isArray(entry.checks) ? entry.checks.slice(0, 3).map(value => value === true) : [];
+  const explicitStatus = Object.values(CHECKLIST_STATUS).includes(entry.status) ? entry.status : null;
+  const inferredStatus = checks.length && checks.every(Boolean)
+    ? CHECKLIST_STATUS.COMPLETED
+    : checks.some(Boolean) || entry.memo
+      ? CHECKLIST_STATUS.IN_PROGRESS
+      : CHECKLIST_STATUS.NOT_STARTED;
+  const status = explicitStatus || inferredStatus;
+  return {
+    status,
+    completedAt:status === CHECKLIST_STATUS.COMPLETED ? normalizeCompletedAt(entry.completedAt) : null,
+    updatedAt:normalizeUpdatedAt(entry.updatedAt),
+    memo:typeof entry.memo === 'string' ? entry.memo.slice(0, 500) : '',
+    checks
+  };
+}
+
+function normalizeChecklist(checklist = {}) {
+  if (!checklist || typeof checklist !== 'object' || Array.isArray(checklist)) return {};
+  return Object.fromEntries(Object.entries(checklist).filter(([key]) => typeof key === 'string' && key).map(([key, entry]) => [key, normalizeChecklistEntry(entry)]));
+}
+
+function normalizeChecklistHistory(history = []) {
+  if (!Array.isArray(history)) return [];
+  return history.filter(entry => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .map(entry => {
+      const normalized = {
+        taskKey:typeof entry.taskKey === 'string' ? entry.taskKey : '',
+        type:CHECKLIST_HISTORY_TYPES.includes(entry.type) ? entry.type : '',
+        at:normalizeUpdatedAt(entry.at)
+      };
+      if (typeof entry.from === 'string') normalized.from = entry.from;
+      if (typeof entry.to === 'string') normalized.to = entry.to;
+      return normalized;
+    })
+    .filter(entry => entry.taskKey && entry.type && entry.at)
+    .slice(-CHECKLIST_HISTORY_LIMIT);
+}
+
+function normalizeHandover(handover = {}) {
+  if (!handover || typeof handover !== 'object' || Array.isArray(handover)) return { note:'', updatedAt:null };
+  return {
+    note:typeof handover.note === 'string' ? handover.note.slice(0, HANDOVER_NOTE_LIMIT) : '',
+    updatedAt:normalizeUpdatedAt(handover.updatedAt)
+  };
+}
+
 function normalizeBudget(budget = {}) {
   const plans = {};
   if (budget.plans && typeof budget.plans === 'object' && !Array.isArray(budget.plans)) {
@@ -81,10 +141,10 @@ function normalizeState(saved) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return createEmptyState();
   if (saved.version === STORAGE_VERSION && saved.projectId === PROJECT_ID) {
     const tasks = saved.tasks && typeof saved.tasks === 'object' && !Array.isArray(saved.tasks) ? saved.tasks : {};
-    return { version:STORAGE_VERSION, projectId:PROJECT_ID, settings:normalizeSettings(saved.settings), tasks:normalizeTaskEntries(tasks), budget:normalizeBudget(saved.budget) };
+    return { version:STORAGE_VERSION, projectId:PROJECT_ID, settings:normalizeSettings(saved.settings), tasks:normalizeTaskEntries(tasks), checklist:normalizeChecklist(saved.checklist), checklistHistory:normalizeChecklistHistory(saved.checklistHistory), handover:normalizeHandover(saved.handover), budget:normalizeBudget(saved.budget) };
   }
-  if ((saved.version === 3 || saved.version === 2 || saved.version === 1) && saved.tasks && typeof saved.tasks === 'object' && !Array.isArray(saved.tasks)) {
-    return { ...createEmptyState(), settings:normalizeSettings(saved.settings), tasks:normalizeTaskEntries(saved.tasks) };
+  if (Number.isInteger(saved.version) && saved.version >= 1 && saved.version < STORAGE_VERSION && saved.tasks && typeof saved.tasks === 'object' && !Array.isArray(saved.tasks)) {
+    return { ...createEmptyState(), settings:normalizeSettings(saved.settings), tasks:normalizeTaskEntries(saved.tasks), checklist:normalizeChecklist(saved.checklist), checklistHistory:normalizeChecklistHistory(saved.checklistHistory), handover:normalizeHandover(saved.handover), budget:normalizeBudget(saved.budget) };
   }
   if (!('version' in saved) && !('projectId' in saved)) return { ...createEmptyState(), tasks:normalizeTaskEntries(saved) };
   return createEmptyState();
@@ -109,7 +169,7 @@ export function loadState() {
   try {
     const saved = readStoredState();
     const state = normalizeState(saved);
-    if (!saved || saved.version !== STORAGE_VERSION || saved.projectId !== PROJECT_ID || !saved.settings) persistState(state);
+    if (!saved || saved.version !== STORAGE_VERSION || saved.projectId !== PROJECT_ID || !saved.settings || saved.checklist === undefined || saved.checklistHistory === undefined || saved.handover === undefined) persistState(state);
     return state;
   } catch { return createEmptyState(); }
 }
@@ -128,6 +188,10 @@ export function resetState() {
 
 export function getTaskState(state, taskId) {
   return state?.tasks?.[taskId] || { status:TASK_STATUS.NOT_STARTED, completedAt:null, memo:'' };
+}
+
+export function getChecklistState(state, checklistKey) {
+  return state?.checklist?.[checklistKey] || { status:CHECKLIST_STATUS.NOT_STARTED, completedAt:null, updatedAt:null, memo:'', checks:[] };
 }
 
 // Keep only user state for tasks present in a newly applied master list.
@@ -150,6 +214,40 @@ export function saveTaskState(taskId, patch) {
   state.tasks[taskId] = { ...getTaskState(state, taskId), ...patch };
   persistState(state);
   return state.tasks[taskId];
+}
+
+export function saveChecklistState(checklistKey, patch) {
+  const state = loadState();
+  const current = getChecklistState(state, checklistKey);
+  const next = normalizeChecklistEntry({ ...current, ...patch });
+  const checksChanged = JSON.stringify(current.checks || []) !== JSON.stringify(next.checks || []);
+  const memoChanged = current.memo !== next.memo;
+  const statusChanged = current.status !== next.status;
+  const changed = checksChanged || memoChanged || statusChanged || current.completedAt !== next.completedAt;
+  if (changed) next.updatedAt = normalizeUpdatedAt(patch?.updatedAt) || new Date().toISOString();
+  else next.updatedAt = current.updatedAt;
+  state.checklist[checklistKey] = next;
+  if (changed) {
+    const events = [];
+    const at = next.updatedAt || new Date().toISOString();
+    if (statusChanged) events.push({ taskKey:checklistKey, type:'STATUS_CHANGED', from:current.status, to:next.status, at });
+    if (checksChanged) events.push({ taskKey:checklistKey, type:'SUBCHECK_CHANGED', at });
+    if (memoChanged) events.push({ taskKey:checklistKey, type:'MEMO_UPDATED', at });
+    state.checklistHistory = [...(state.checklistHistory || []), ...events].slice(-CHECKLIST_HISTORY_LIMIT);
+  }
+  persistState(state);
+  return next;
+}
+
+export function saveHandoverNote(note = '') {
+  const state = loadState();
+  const nextNote = String(note).slice(0, HANDOVER_NOTE_LIMIT);
+  const current = state.handover || { note:'', updatedAt:null };
+  state.handover = current.note === nextNote
+    ? current
+    : { note:nextNote, updatedAt:new Date().toISOString() };
+  persistState(state);
+  return state.handover;
 }
 
 export function saveBudgetPlans(plans) {

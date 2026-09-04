@@ -1,14 +1,13 @@
 {
   "name": "reporter-training-ops",
-  "version": "0.7.0",
+  "version": "0.11.0",
   "private": true,
-  "description": "수습기자 기본교육 운영 미니리더",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
     "start": "node server/server.js",
-    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/backup.test.js && node tests/server.test.js"
+    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/backup.test.js && node tests/gap-analysis.test.js && node tests/checklist.test.js && node tests/handover.test.js && node tests/server.test.js"
   }
 }

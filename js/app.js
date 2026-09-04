@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, completeSettlement, cancelTransaction, getTaskState, loadState, saveBudgetPlans, saveSettings, saveTransaction, TASK_STATUS } from './storage.js';
+import { CHECKLIST_STATUS, DEFAULT_SETTINGS, completeSettlement, cancelTransaction, getTaskState, loadState, saveBudgetPlans, saveChecklistState, saveHandoverNote, saveSettings, saveTransaction, TASK_STATUS } from './storage.js';
 import { renderDashboard } from './dashboard.js';
 import { calculateTaskDate } from './schedule.js';
 import { filterTasks, handleTaskEvent, loadTasks, renderTasks } from './tasks.js';
@@ -9,6 +9,13 @@ import { exportBackup, getLastBackupDate, previewBackup, readBackupFile, resetAl
 import { downloadTextFile, getDateFilename, tasksToCsv } from './csv.js';
 import { buildCsvImportPreview, cancelAdminEdit, commitAdminEdit, createTaskAdminSession, getTimingLabel, readTaskAdminForm, renderDependencyOptions, renderTaskAdmin, removeAdminTask, sortAdminTasks, startAdminEdit, suggestNextTaskId } from './task-admin.js';
 import { getDataSummary } from './data-quality.js';
+import { AI_MODES, analyzeGap } from './ai-adapter.js';
+import { GAP_INPUT_LIMITS, findSensitivePatterns, getSourceType, validateGapSources } from './gap-analysis.js';
+import { renderGapResults, renderGapSources, renderGapSummary } from './gap-ui.js';
+import { filterChecklistItems, findChecklistSensitivePatterns, getChecklistItemState, getCurrentChecklistSection, loadChecklist } from './checklist.js';
+import { renderChecklistError, renderChecklistGroups, renderChecklistNavigation, renderChecklistSummary } from './checklist-ui.js';
+import { getHandoverSnapshot } from './handover.js';
+import { buildHandoverReportHtml, getHandoverReportFilename } from './handover-export.js';
 
 const state = loadState();
 let tasks = [];
@@ -30,15 +37,50 @@ const dependencyConfirmMessage = document.querySelector('#dependency-confirm-mes
 const taskAdminPanel = document.querySelector('#task-admin-panel');
 const taskAdminForm = document.querySelector('#task-admin-form');
 const taskCsvInput = document.querySelector('#task-csv-input');
+const gapAnalysisPanel = document.querySelector('#gap-analysis-panel');
+const gapSourceInput = document.querySelector('#gap-source-input');
+const gapAnalysisMode = document.querySelector('#gap-analysis-mode');
+const gapResultSummary = document.querySelector('#gap-result-summary');
+const gapResultList = document.querySelector('#gap-result-list');
+const dashboardView = document.querySelector('#dashboard-view');
+const checklistView = document.querySelector('#checklist-view');
+const handoverView = document.querySelector('#handover-view');
+const checklistSummary = document.querySelector('#checklist-summary');
+const checklistNav = document.querySelector('#checklist-section-nav');
+const checklistSearchInput = document.querySelector('#checklist-search');
+const checklistGroups = document.querySelector('#checklist-groups');
+const checklistValidationMessage = document.querySelector('#checklist-validation-message');
+const checklistResultSummary = document.querySelector('#checklist-result-summary');
 let pendingCompletion = null;
 let pendingBackup = null;
 let adminSession = null;
+let gapSources = [];
+let gapSession = null;
+let gapFilter = 'all';
+let gapSourceSequence = 1;
+let gapAnalysisRunning = false;
+let checklistData = { items:[], groups:[], report:null };
+let checklistLoadError = null;
+let checklistSearch = '';
+let checklistFilter = 'all';
+let checklistSection = '전체';
+let handoverHistoryExpanded = false;
+const memoTimers = new Map();
+const memoDrafts = new Map();
 
 async function initializeTasks() {
   try {
     tasks = await loadTasks();
     budgetCategories = await loadBudgetCategories();
     adminSession = createTaskAdminSession(tasks);
+    try {
+      checklistData = await loadChecklist();
+      checklistLoadError = null;
+    } catch (error) {
+      checklistLoadError = error;
+      checklistData = { items:[], groups:[], report:error.report || null };
+      console.error(`[업무목록.csv] ${error.report?.errors?.join(' | ') || error.message}`);
+    }
     render();
   } catch (error) {
     taskList.innerHTML = '<div class="empty-state">업무 데이터를 불러오지 못했습니다.<br /><small>README.md의 로컬 서버 실행 방법을 확인해 주세요.</small></div>';
@@ -72,6 +114,290 @@ function render() {
   renderTasks(visibleTasks, state, taskList, operationalTasks, budgetCategories);
   renderBudgetPanel(state, budgetCategories, operationalTasks);
   document.querySelector('#result-summary').textContent = `${visibleTasks.length}개 업무 표시 중 · 전체 ${operationalTasks.length}개`;
+  if (checklistView && !checklistView.hidden) renderChecklistView();
+  if (handoverView && !handoverView.hidden) renderHandoverView();
+}
+
+function findChecklistItem(key) { return checklistData.items.find(item => item.key === key) || null; }
+
+function setChecklistMessage(message = '', isError = false) {
+  if (!checklistValidationMessage) return;
+  checklistValidationMessage.textContent = message;
+  checklistValidationMessage.classList.toggle('is-error', isError);
+}
+
+function renderChecklistView() {
+  if (!checklistView) return;
+  if (checklistLoadError) {
+    renderChecklistSummary(checklistSummary, [], state);
+    renderChecklistError(checklistGroups, checklistLoadError);
+    if (checklistNav) checklistNav.innerHTML = '';
+    setChecklistMessage('업무목록.csv를 불러오지 못했습니다. 원인과 행 번호를 확인해 주세요.', true);
+    if (checklistResultSummary) checklistResultSummary.textContent = '체크리스트를 표시할 수 없습니다.';
+    return;
+  }
+  const stats = renderChecklistSummary(checklistSummary, checklistData.items, state);
+  const currentSection = document.querySelector('#checklist-current-section');
+  if (currentSection) currentSection.textContent = `현재 진행 구간 · ${getCurrentChecklistSection(checklistData.groups, state)}`;
+  renderChecklistNavigation(checklistNav, checklistData.groups, state, checklistSection);
+  const filtered = filterChecklistItems(checklistData.items, state, { query:checklistSearch, filter:checklistFilter, section:checklistSection });
+  renderChecklistGroups(checklistGroups, checklistData.groups, filtered, state, checklistSection);
+  const expectationMessage = checklistData.report?.expectedMismatches?.length ? `기준값 확인 필요: ${checklistData.report.expectedMismatches.join(' · ')}` : `업무목록.csv 검증 PASS · ${checklistData.report?.total || 0}건 · ${checklistData.report?.sections?.length || 0}구간 · 3회 체크 ${checklistData.report?.threeCheck || 0}건`;
+  setChecklistMessage(expectationMessage, Boolean(checklistData.report?.expectedMismatches?.length));
+  if (checklistResultSummary) checklistResultSummary.textContent = `${filtered.length}개 업무 표시 중 · 전체 ${stats.total}개`;
+}
+
+function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character])); }
+
+function handoverStatusLabel(status) {
+  return ({
+    [CHECKLIST_STATUS.NOT_STARTED]:'미착수',
+    [CHECKLIST_STATUS.IN_PROGRESS]:'진행중',
+    [CHECKLIST_STATUS.COMPLETED]:'완료',
+    [CHECKLIST_STATUS.NOT_APPLICABLE]:'해당없음'
+  })[status] || '미착수';
+}
+
+function formatHandoverDate(value) {
+  if (!value) return '변경시각 없음';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '변경시각 없음' : new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short' }).format(date);
+}
+
+function renderHandoverItems(container, entries, emptyMessage = '해당 업무가 없습니다.') {
+  if (!container) return;
+  if (!entries.length) { container.innerHTML = `<p class="handover-empty">${escapeHtml(emptyMessage)}</p>`; return; }
+  container.innerHTML = entries.map(entry => `<article class="handover-item ${entry.priority ? 'is-priority' : ''}"><div class="handover-item-copy"><span class="handover-section-label">${escapeHtml(entry.item.section)}</span><strong>${escapeHtml(entry.item.work)}</strong>${entry.reason ? `<span class="handover-reason">${escapeHtml(entry.reason)}</span>` : ''}</div><span class="handover-status handover-status-${escapeHtml(entry.status.toLowerCase())}">${escapeHtml(handoverStatusLabel(entry.status))}</span>${entry.memo ? `<p class="handover-item-memo">메모 · ${escapeHtml(entry.memo)}</p>` : ''}<span class="handover-item-time">마지막 변경 · ${escapeHtml(formatHandoverDate(entry.updatedAt))}</span></article>`).join('');
+}
+
+function renderHandoverHistory(container, entries) {
+  if (!container) return;
+  if (!entries.length) { container.innerHTML = '<p class="handover-empty">최근 변경 이력이 없습니다.</p>'; return; }
+  container.innerHTML = entries.map(entry => `<article class="handover-history-item"><time>${escapeHtml(formatHandoverDate(entry.at))}</time><div><span class="handover-section-label">${escapeHtml(entry.section)}</span><strong>${escapeHtml(entry.work)}</strong><p>${escapeHtml(entry.change)}</p></div></article>`).join('');
+}
+
+function renderHandoverSectionBlocks(container, snapshot) {
+  if (!container) return;
+  container.innerHTML = snapshot.sectionProgress.map(section => `<details class="handover-section-block"><summary><strong>${escapeHtml(section.section)}</strong><span>${section.stats.complete} / ${section.stats.applicable} 완료 · ${section.stats.percent}%</span></summary><ul class="handover-status-list">${snapshot.allItems.filter(entry => entry.item.section === section.section).map(entry => `<li><span class="handover-status handover-status-${escapeHtml(entry.status.toLowerCase())}">${escapeHtml(handoverStatusLabel(entry.status))}</span><span>${escapeHtml(entry.item.work)}</span>${entry.memo ? `<small>메모 · ${escapeHtml(entry.memo)}</small>` : ''}</li>`).join('')}</ul></details>`).join('');
+}
+
+function setHandoverNoteMessage(message = '', isError = false) {
+  const element = document.querySelector('#handover-note-message');
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle('is-error', isError);
+}
+
+function renderHandoverView() {
+  if (!handoverView) return;
+  const sourceNote = document.querySelector('#handover-source-note');
+  if (checklistLoadError) {
+    if (sourceNote) sourceNote.textContent = '업무목록.csv를 불러오지 못해 인수인계 화면을 표시할 수 없습니다.';
+    ['#handover-first-list', '#handover-next-task', '#handover-inprogress-list', '#handover-previous-list', '#handover-memo-incomplete-list', '#handover-memo-completed-list', '#handover-history-list'].forEach(selector => renderHandoverItems(document.querySelector(selector), [], '업무목록.csv 확인이 필요합니다.'));
+    return;
+  }
+  const snapshot = getHandoverSnapshot(checklistData.items, checklistData.groups, state, { historyLimit:handoverHistoryExpanded ? 200 : 10 });
+  const source = snapshot.source;
+  if (sourceNote) sourceNote.textContent = `체크리스트 원본 · 업무목록.csv · ${source.rowCount}건 · ${snapshot.sectionProgress.length}구간 · key ${source.keyCount}개 · checksum ${source.checksum}`;
+  const currentSection = document.querySelector('#handover-current-section');
+  if (currentSection) currentSection.textContent = snapshot.currentSection;
+  Object.entries(snapshot.stats).forEach(([key, value]) => { const element = document.querySelector(`[data-handover-stat="${key}"]`); if (element) element.textContent = key === 'percent' ? `${value}%` : value; });
+  const progressBar = document.querySelector('#handover-progress-bar');
+  if (progressBar) progressBar.style.width = `${snapshot.stats.percent}%`;
+  const warning = document.querySelector('#handover-previous-warning');
+  if (warning) { warning.hidden = !snapshot.previousIncomplete.length; warning.textContent = snapshot.previousIncomplete.length ? `이전 구간에 미완료 업무가 있습니다. · 이전 구간 미완료 ${snapshot.previousIncomplete.length}건` : ''; }
+  renderHandoverItems(document.querySelector('#handover-first-list'), snapshot.firstItems, '우선 확인할 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-next-task'), snapshot.nextTask ? [snapshot.nextTask] : [], '현재 추천할 다음 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-inprogress-list'), snapshot.inProgress, '진행중 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-previous-list'), snapshot.previousIncomplete, '이전 구간 미완료 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-memo-incomplete-list'), snapshot.memoIncomplete, '메모가 있는 미완료 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-memo-completed-list'), snapshot.memoCompleted, '완료 업무의 메모가 없습니다.');
+  renderHandoverHistory(document.querySelector('#handover-history-list'), snapshot.recentHistory);
+  const moreButton = document.querySelector('#handover-history-more');
+  if (moreButton) { moreButton.hidden = snapshot.historyCount <= 10; moreButton.textContent = handoverHistoryExpanded ? '접기' : `더 보기 (${snapshot.historyCount - 10}건)`; }
+  renderHandoverSectionBlocks(document.querySelector('#handover-section-list'), snapshot);
+  renderHandoverSectionBlocks(document.querySelector('#handover-full-list'), snapshot);
+  const note = document.querySelector('#handover-note');
+  if (note && document.activeElement !== note) note.value = snapshot.handover.note || '';
+}
+
+function showDashboard() {
+  if (dashboardView) dashboardView.hidden = false;
+  if (checklistView) checklistView.hidden = true;
+  if (handoverView) handoverView.hidden = true;
+}
+
+function showChecklist() {
+  if (dashboardView) dashboardView.hidden = true;
+  if (checklistView) checklistView.hidden = false;
+  if (handoverView) handoverView.hidden = true;
+  renderChecklistView();
+  checklistSearchInput?.focus();
+}
+
+function showHandover() {
+  if (dashboardView) dashboardView.hidden = true;
+  if (checklistView) checklistView.hidden = true;
+  if (handoverView) handoverView.hidden = false;
+  renderHandoverView();
+}
+
+function syncChecklistState() {
+  const latest = loadState();
+  state.checklist = latest.checklist;
+  state.checklistHistory = latest.checklistHistory;
+  state.handover = latest.handover;
+}
+
+function updateChecklistItemState(item, patch) {
+  if (!item) return;
+  saveChecklistState(item.key, patch);
+  syncChecklistState();
+  renderChecklistView();
+  if (handoverView && !handoverView.hidden) renderHandoverView();
+}
+
+function updateChecklistCardStatus(card, status) {
+  if (!card) return;
+  card.className = card.className.replace(/\bchecklist-status-[^\s]+/g, '').trim();
+  card.classList.add(`checklist-status-${status.toLowerCase()}`);
+  const label = card.querySelector('.checklist-status-label');
+  if (label) label.textContent = ({
+    [CHECKLIST_STATUS.NOT_STARTED]:'미착수',
+    [CHECKLIST_STATUS.IN_PROGRESS]:'진행중',
+    [CHECKLIST_STATUS.COMPLETED]:'완료',
+    [CHECKLIST_STATUS.NOT_APPLICABLE]:'해당없음'
+  })[status] || '미착수';
+}
+
+function deriveChecklistPatch(item, checks, memo, currentStatus) {
+  if (currentStatus === CHECKLIST_STATUS.NOT_APPLICABLE) return { status:currentStatus, completedAt:null, checks, memo };
+  if (item.note === '3회 체크') {
+    const completed = checks.length === 3 && checks.every(Boolean);
+    return { status:completed ? CHECKLIST_STATUS.COMPLETED : checks.some(Boolean) || memo ? CHECKLIST_STATUS.IN_PROGRESS : CHECKLIST_STATUS.NOT_STARTED, completedAt:completed ? (state.checklist[item.key]?.completedAt || new Date().toISOString()) : null, checks, memo };
+  }
+  const status = currentStatus === CHECKLIST_STATUS.COMPLETED ? CHECKLIST_STATUS.COMPLETED : memo ? CHECKLIST_STATUS.IN_PROGRESS : CHECKLIST_STATUS.NOT_STARTED;
+  return { status, completedAt:status === CHECKLIST_STATUS.COMPLETED ? (state.checklist[item.key]?.completedAt || new Date().toISOString()) : null, checks:[], memo };
+}
+
+function handleChecklistChange(event) {
+  const action = event.target.dataset.checklistAction;
+  if (!action || action === 'memo') return;
+  const card = event.target.closest('[data-checklist-key]');
+  const item = findChecklistItem(card?.dataset.checklistKey);
+  if (!item) return;
+  const current = getChecklistItemState(item, state);
+  if (action === 'status-check') {
+    updateChecklistItemState(item, { status:event.target.checked ? CHECKLIST_STATUS.COMPLETED : CHECKLIST_STATUS.NOT_STARTED, completedAt:event.target.checked ? new Date().toISOString() : null, checks:[], memo:current.memo });
+    return;
+  }
+  if (action === 'detail-check') {
+    const checks = [...current.checks];
+    checks[Number(event.target.dataset.checklistIndex)] = Boolean(event.target.checked);
+    updateChecklistItemState(item, deriveChecklistPatch(item, checks, current.memo, current.status));
+  }
+}
+
+function handleChecklistClick(event) {
+  const navButton = event.target.closest('[data-checklist-section]');
+  if (navButton) { checklistSection = navButton.dataset.checklistSection; renderChecklistView(); return; }
+  const filterButton = event.target.closest('[data-checklist-filter]');
+  if (filterButton) {
+    checklistFilter = filterButton.dataset.checklistFilter;
+    document.querySelectorAll('[data-checklist-filter]').forEach(button => button.classList.toggle('active', button === filterButton));
+    renderChecklistView();
+    return;
+  }
+  const actionButton = event.target.closest('[data-checklist-action="toggle-na"]');
+  if (!actionButton) return;
+  const card = actionButton.closest('[data-checklist-key]');
+  const item = findChecklistItem(card?.dataset.checklistKey);
+  if (!item) return;
+  const current = getChecklistItemState(item, state);
+  if (current.status === CHECKLIST_STATUS.NOT_APPLICABLE) {
+    updateChecklistItemState(item, deriveChecklistPatch(item, current.checks, current.memo, CHECKLIST_STATUS.NOT_STARTED));
+  } else {
+    updateChecklistItemState(item, { status:CHECKLIST_STATUS.NOT_APPLICABLE, completedAt:null, checks:current.checks, memo:current.memo });
+  }
+}
+
+function handleChecklistInput(event) {
+  if (event.target.dataset.checklistAction !== 'memo') return;
+  const card = event.target.closest('[data-checklist-key]');
+  const item = findChecklistItem(card?.dataset.checklistKey);
+  if (!item) return;
+  const sensitive = findChecklistSensitivePatterns(event.target.value);
+  const timer = memoTimers.get(item.key);
+  if (timer) window.clearTimeout(timer);
+  if (sensitive.length) {
+    memoDrafts.delete(item.key);
+    setChecklistMessage(`개인정보로 보이는 내용은 저장하지 않았습니다: ${sensitive.join(', ')}`, true);
+    return;
+  }
+  memoDrafts.set(item.key, event.target.value);
+  const current = getChecklistItemState(item, state);
+  const patch = deriveChecklistPatch(item, current.checks, event.target.value, current.status);
+  updateChecklistCardStatus(card, patch.status);
+  renderChecklistSummary(checklistSummary, checklistData.items, state);
+  memoTimers.set(item.key, window.setTimeout(() => {
+    memoTimers.delete(item.key);
+    flushChecklistMemo(item, false);
+  }, 450));
+}
+
+function flushChecklistMemo(item, renderAfterSave = true) {
+  if (!item || !memoDrafts.has(item.key)) return;
+  const timer = memoTimers.get(item.key);
+  if (timer) window.clearTimeout(timer);
+  memoTimers.delete(item.key);
+  const memo = memoDrafts.get(item.key);
+  memoDrafts.delete(item.key);
+  const sensitive = findChecklistSensitivePatterns(memo);
+  if (sensitive.length) { setChecklistMessage(`개인정보로 보이는 내용은 저장하지 않았습니다: ${sensitive.join(', ')}`, true); if (renderAfterSave) renderChecklistView(); return; }
+  const current = getChecklistItemState(item, state);
+  saveChecklistState(item.key, deriveChecklistPatch(item, current.checks, memo, current.status));
+  syncChecklistState();
+  if (renderAfterSave) renderChecklistView();
+  else {
+    renderChecklistSummary(checklistSummary, checklistData.items, state);
+    if (handoverView && !handoverView.hidden) renderHandoverView();
+  }
+}
+
+function handleChecklistBlur(event) {
+  if (event.target.dataset.checklistAction !== 'memo') return;
+  const card = event.target.closest('[data-checklist-key]');
+  const item = findChecklistItem(card?.dataset.checklistKey);
+  flushChecklistMemo(item, true);
+}
+
+function handleHandoverNoteInput(event) {
+  if (event.target.id !== 'handover-note') return;
+  const sensitive = findChecklistSensitivePatterns(event.target.value);
+  setHandoverNoteMessage(sensitive.length ? `개인정보로 보이는 내용은 저장하지 않습니다: ${sensitive.join(', ')}` : '저장 버튼을 누르면 브라우저에 저장됩니다.', Boolean(sensitive.length));
+}
+
+function saveHandoverNoteFromForm() {
+  const note = document.querySelector('#handover-note');
+  if (!note) return;
+  const sensitive = findChecklistSensitivePatterns(note.value);
+  if (sensitive.length) { setHandoverNoteMessage(`개인정보로 보이는 내용은 저장하지 않았습니다: ${sensitive.join(', ')}`, true); return; }
+  saveHandoverNote(note.value);
+  syncChecklistState();
+  renderHandoverView();
+  setHandoverNoteMessage('종합 인수인계 메모를 저장했습니다.');
+}
+
+function exportHandoverReport() {
+  const exportMessage = document.querySelector('#handover-export-message');
+  if (checklistLoadError || !checklistData.items.length) {
+    if (exportMessage) exportMessage.textContent = '업무목록.csv를 확인한 뒤 보고서를 만들 수 있습니다.';
+    return;
+  }
+  const html = buildHandoverReportHtml(checklistData.items, checklistData.groups, state, new Date());
+  const filename = getHandoverReportFilename(new Date());
+  const downloaded = downloadTextFile(html, filename, 'text/html;charset=utf-8');
+  if (exportMessage) { exportMessage.textContent = downloaded ? `인수인계 보고서를 만들었습니다. ${filename}` : '현재 환경에서는 파일 다운로드를 실행할 수 없습니다.'; exportMessage.classList.toggle('is-error', !downloaded); }
 }
 
 function setStage(stage) {
@@ -143,6 +469,8 @@ function renderBackupPreview(preview) {
   document.querySelector('#preview-training-name').textContent = preview.trainingName;
   document.querySelector('#preview-task-count').textContent = `${preview.taskCount}건`;
   document.querySelector('#preview-completed-count').textContent = `${preview.completedCount}건`;
+  document.querySelector('#preview-checklist-count').textContent = `${preview.checklistCount || 0}건`;
+  document.querySelector('#preview-checklist-completed-count').textContent = `${preview.checklistCompletedCount || 0}건`;
   document.querySelector('#preview-category-count').textContent = `${preview.categoryCount}개`;
   document.querySelector('#preview-transaction-count').textContent = `${preview.transactionCount}건`;
   document.querySelector('#backup-preview-warning').textContent = preview.warnings.join(' ');
@@ -349,6 +677,7 @@ function renderTaskAdminView() {
 
 function openTaskAdmin() {
   if (!adminSession) adminSession = createTaskAdminSession(tasks);
+  clearAdminAiReference();
   renderTaskAdminView();
   taskAdminPanel.hidden = false;
   document.querySelector('#admin-search').focus();
@@ -357,6 +686,145 @@ function openTaskAdmin() {
 function closeTaskAdmin() {
   taskAdminPanel.hidden = true;
   if (adminSession) cancelAdminEdit(adminSession);
+  clearAdminAiReference();
+}
+
+function clearAdminAiReference() {
+  const reference = document.querySelector('#admin-ai-reference');
+  if (!reference) return;
+  reference.hidden = true;
+  const content = reference.querySelector('p');
+  if (content) content.textContent = '';
+}
+
+function setAdminAiReference(result, mode = '신규업무 후보') {
+  const reference = document.querySelector('#admin-ai-reference');
+  if (!reference) return;
+  reference.hidden = false;
+  reference.querySelector('strong').textContent = `AI 누락점검 참고 · ${mode}`;
+  reference.querySelector('p').textContent = `${result.source?.filename || '분석자료'}: ${result.source?.excerpt || result.candidate}\n${result.reason || ''}\nAI 제안은 참고용이며 저장 전 업무 정의를 담당자가 확인해야 합니다.`;
+}
+
+function openTaskAdminFromGap(result, taskId = null) {
+  if (!adminSession) adminSession = createTaskAdminSession(tasks);
+  const existingTaskId = taskId && tasks.some(task => task.id === taskId) ? taskId : null;
+  if (existingTaskId) {
+    startAdminEdit(adminSession, existingTaskId);
+  } else {
+    startAdminEdit(adminSession, null, '사전준비');
+    adminSession.draft.title = result.candidate;
+    adminSession.draft.description = result.candidate;
+    adminSession.draft.handover.caution = `분석자료 근거: ${result.source?.excerpt || ''}`.trim();
+    adminSession.draft.tags = Array.isArray(result.suggestedTags) ? result.suggestedTags : [];
+  }
+  showTaskAdminMessage(existingTaskId ? '기존 업무를 AI 누락점검 참고와 함께 열었습니다. 원본은 자동 변경되지 않습니다.' : '신규업무 후보를 편집 화면으로 전달했습니다. 단계·일정·필수여부·담당·완료기준·dependency를 확인해 주세요.');
+  gapAnalysisPanel.hidden = true;
+  renderTaskAdminView();
+  taskAdminPanel.hidden = false;
+  setAdminAiReference(result, existingTaskId ? '기존업무 보강 후보' : '신규업무 후보');
+  document.querySelector('#task-admin-title')?.scrollIntoView({ block:'nearest' });
+}
+
+function setGapMessage(message = '', isError = false) {
+  const element = document.querySelector('#gap-analysis-message');
+  if (!element) return;
+  element.textContent = message;
+  element.classList.toggle('is-error', isError);
+}
+
+function renderGapView() {
+  const results = gapSession?.results || [];
+  document.querySelector('#gap-master-count').textContent = `${tasks.length}개 업무`;
+  document.querySelector('#gap-source-count').textContent = `${gapSources.length}개 파일`;
+  document.querySelector('#gap-analysis-run').disabled = gapSources.length === 0 || gapAnalysisRunning;
+  renderGapSources(document.querySelector('#gap-source-list'), gapSources, sourceId => {
+    gapSources = gapSources.filter(source => source.id !== sourceId);
+    gapSession = null;
+    setGapMessage();
+    renderGapView();
+  });
+  const summaryElements = {
+    all:document.querySelector('#gap-count-all'),
+    high:document.querySelector('#gap-count-high'),
+    medium:document.querySelector('#gap-count-medium'),
+    low:document.querySelector('#gap-count-low')
+  };
+  renderGapSummary(summaryElements, results);
+  ['NEW_TASK', 'ENRICH_EXISTING', 'DUPLICATE'].forEach(type => {
+    const count = results.filter(result => result.type === type).length;
+    const strong = gapResultSummary.querySelector(`[data-gap-filter="${type}"] strong`);
+    if (strong) strong.textContent = String(count);
+  });
+  gapResultSummary.querySelectorAll('[data-gap-filter]').forEach(button => button.classList.toggle('active', button.dataset.gapFilter === gapFilter));
+  renderGapResults(gapResultList, results, gapFilter, {
+    onAcceptNew:result => { result.status = 'ACCEPTED'; renderGapView(); openTaskAdminFromGap(result); },
+    onOpenExisting:result => { result.status = 'ACCEPTED'; renderGapView(); openTaskAdminFromGap(result, result.similarTasks[0]?.taskId); },
+    onIgnore:result => { result.status = 'IGNORED'; renderGapView(); }
+  });
+}
+
+function openGapAnalysis() {
+  renderGapView();
+  gapAnalysisPanel.hidden = false;
+  gapSourceInput.focus();
+}
+
+function closeGapAnalysis() { gapAnalysisPanel.hidden = true; }
+
+async function importGapSources(event) {
+  const files = [...(event.target.files || [])];
+  event.target.value = '';
+  if (!files.length) return;
+  const unsupported = [];
+  const sensitive = [];
+  for (const file of files) {
+    if (gapSources.length >= GAP_INPUT_LIMITS.maxFiles) { unsupported.push(`${file.name}(최대 ${GAP_INPUT_LIMITS.maxFiles}개)`); continue; }
+    const type = getSourceType(file.name);
+    if (!type) { unsupported.push(file.name); continue; }
+    const content = await file.text();
+    if (content.length > GAP_INPUT_LIMITS.maxFileChars) { unsupported.push(`${file.name}(파일이 너무 큼)`); continue; }
+    const totalAfterAdd = gapSources.reduce((sum, source) => sum + source.content.length, 0) + content.length;
+    if (totalAfterAdd > GAP_INPUT_LIMITS.maxTotalChars) { unsupported.push(`${file.name}(전체 용량 초과)`); continue; }
+    if (findSensitivePatterns(content).length) sensitive.push(file.name);
+    gapSources.push({ id:`SRC-${String(gapSourceSequence++).padStart(3, '0')}`, filename:file.name, type, content, addedAt:new Date().toISOString() });
+  }
+  gapSession = null;
+  const messages = [];
+  if (unsupported.length) messages.push(`지원하지 않는 파일은 제외했습니다: ${unsupported.join(', ')}`);
+  if (sensitive.length) messages.push(`민감정보 형식이 감지된 파일이 있습니다(${sensitive.join(', ')}). AI 정밀분석으로 전송하지 않도록 먼저 내용을 정리해 주세요.`);
+  setGapMessage(messages.join(' ') || '분석자료를 추가했습니다.');
+  renderGapView();
+}
+
+async function runGapAnalysis() {
+  if (!gapSources.length) { setGapMessage('분석자료를 먼저 추가해 주세요.', true); return; }
+  if (gapAnalysisRunning) return;
+  const mode = gapAnalysisMode.value || AI_MODES.LOCAL_RULE;
+  if (mode === AI_MODES.REMOTE_AI) {
+    const inputValidation = validateGapSources(gapSources);
+    if (!inputValidation.valid) {
+      const message = inputValidation.sensitivePatterns.length
+        ? '개인정보 형식이 감지되어 AI로 전송하지 않았습니다. 민감정보를 제거한 뒤 다시 시도해 주세요.'
+        : inputValidation.errors.join(' ');
+      setGapMessage(message, true);
+      return;
+    }
+  }
+  const runButton = document.querySelector('#gap-analysis-run');
+  gapAnalysisRunning = true;
+  runButton.disabled = true;
+  gapAnalysisMode.disabled = true;
+  setGapMessage(mode === AI_MODES.REMOTE_AI ? 'AI가 업무자료와 현재 업무를 비교하고 있습니다.' : '분석자료와 현재 업무 마스터를 비교하는 중입니다.');
+  renderGapView();
+  try {
+    const result = await analyzeGap({ sources:gapSources, tasks, mode });
+    gapSession = { sessionId:`ANALYSIS-${Date.now()}`, createdAt:new Date().toISOString(), sourceCount:gapSources.length, taskCount:tasks.length, mode, results:result.results };
+    setGapMessage(result.error || `분석이 완료되었습니다. ${result.results.length}건의 검토 후보가 있습니다.`, Boolean(result.error));
+  } finally {
+    gapAnalysisRunning = false;
+    gapAnalysisMode.disabled = false;
+    renderGapView();
+  }
 }
 
 function setAdminFormError(message = '') {
@@ -521,6 +989,17 @@ function handleTaskAdminAction(event) {
   if (action === 'validate') { showTaskAdminMessage('현재 편집 세션을 다시 검증했습니다.'); renderTaskAdminView(); }
 }
 
+document.querySelector('#gap-analysis-button').addEventListener('click', openGapAnalysis);
+document.querySelector('#gap-analysis-close').addEventListener('click', closeGapAnalysis);
+gapAnalysisPanel.addEventListener('click', event => { if (event.target === gapAnalysisPanel) closeGapAnalysis(); });
+gapSourceInput.addEventListener('change', importGapSources);
+document.querySelector('#gap-analysis-run').addEventListener('click', runGapAnalysis);
+gapResultSummary.addEventListener('click', event => {
+  const button = event.target.closest('[data-gap-filter]');
+  if (!button) return;
+  gapFilter = button.dataset.gapFilter;
+  renderGapView();
+});
 document.querySelector('#task-admin-button').addEventListener('click', openTaskAdmin);
 document.querySelector('#task-admin-close').addEventListener('click', closeTaskAdmin);
 taskAdminPanel.addEventListener('click', event => {
@@ -540,6 +1019,23 @@ taskAdminPanel.addEventListener('change', event => {
 });
 taskAdminForm.addEventListener('submit', saveAdminTask);
 taskCsvInput.addEventListener('change', importAdminCsv);
+
+document.querySelector('#checklist-button').addEventListener('click', showChecklist);
+document.querySelector('#handover-button').addEventListener('click', showHandover);
+document.querySelector('#handover-checklist-button').addEventListener('click', showChecklist);
+document.querySelector('#handover-export').addEventListener('click', exportHandoverReport);
+document.querySelector('#handover-history-more').addEventListener('click', () => { handoverHistoryExpanded = !handoverHistoryExpanded; renderHandoverView(); });
+document.querySelector('#handover-note-save').addEventListener('click', saveHandoverNoteFromForm);
+handoverView.addEventListener('input', handleHandoverNoteInput);
+document.querySelector('#dashboard-button').addEventListener('click', showDashboard);
+document.querySelector('#checklist-back').addEventListener('click', showDashboard);
+checklistNav.addEventListener('click', handleChecklistClick);
+document.querySelector('.checklist-filters').addEventListener('click', handleChecklistClick);
+checklistSearchInput.addEventListener('input', event => { checklistSearch = event.target.value; renderChecklistView(); });
+checklistGroups.addEventListener('click', handleChecklistClick);
+checklistGroups.addEventListener('change', handleChecklistChange);
+checklistGroups.addEventListener('input', handleChecklistInput);
+checklistGroups.addEventListener('focusout', handleChecklistBlur);
 
 document.querySelector('.filter-tabs').addEventListener('click', event => { const button = event.target.closest('[data-stage]'); if (button) setStage(button.dataset.stage); });
 document.querySelector('#stage-progress').addEventListener('click', event => { const button = event.target.closest('[data-stage]'); if (button) setStage(button.dataset.stage); });
@@ -607,6 +1103,7 @@ document.querySelector('#reset-cancel').addEventListener('click', closeResetConf
 document.querySelector('#reset-confirm').addEventListener('click', resetUserData);
 resetConfirmation.addEventListener('click', event => { if (event.target === resetConfirmation) closeResetConfirmation(); });
 document.querySelector('#budget-button').addEventListener('click', openBudgetPanel);
+document.querySelector('#budget-menu-button').addEventListener('click', openBudgetPanel);
 document.querySelector('#budget-close').addEventListener('click', closeBudgetPanel);
 document.querySelector('#budget-panel').addEventListener('click', event => {
   if (event.target.id === 'budget-panel') { closeBudgetPanel(); return; }
@@ -626,6 +1123,7 @@ document.addEventListener('keydown', event => {
   if (!dependencyConfirmation.hidden) { closeDependencyConfirmation(true); render(); }
   else if (!resetConfirmation.hidden) closeResetConfirmation();
   else if (!backupPreviewPanel.hidden) closeBackupPreview();
+  else if (!gapAnalysisPanel.hidden) closeGapAnalysis();
   else if (!taskAdminPanel.hidden) closeTaskAdmin();
   else if (!dataPanel.hidden) closeDataPanel();
   else if (!settingsPanel.hidden) closeSettings();
