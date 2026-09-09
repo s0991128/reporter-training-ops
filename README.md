@@ -53,6 +53,8 @@ npm start
 
 `.env.example`은 변수 이름만 제공하며 실제 값은 비워 둡니다. `OPENAI_API_KEY`가 없으면 `/api/health`의 `aiConfigured`가 `false`이고 AI 정밀분석은 안전한 설정 오류를 표시합니다. 브라우저에서 직접 OpenAI를 호출하지 않으므로 API 키 입력 화면도 만들지 않습니다.
 
+`ALLOWED_ORIGINS`는 AI API의 브라우저 cross-origin 접근을 제한하는 쉼표 구분 allowlist입니다. 기본값은 `http://localhost:8080,http://127.0.0.1:8080`이며, AxHub 운영에서는 `ALLOWED_ORIGINS=https://reporter-training-ops.kpf.axhub.page`로 설정합니다. 서버는 단일 Node process 기준으로 IP별 1분 10회 AI 요청을 제한합니다. CORS와 이 메모리 rate limit은 curl 등 직접 HTTP 요청을 인증하거나 여러 서버 인스턴스 사이에서 제한을 공유하지는 않습니다.
+
 ## 구조
 
 ```text
