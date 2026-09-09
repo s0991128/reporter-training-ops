@@ -1,4 +1,5 @@
 import { PROJECT_ID, STORAGE_VERSION, loadState, replaceState, resetState } from './storage.js';
+import { formatKoreanDateTime, getKoreanDateTimeParts } from './datetime.js';
 
 export const BACKUP_VERSION = 1;
 export const APPLICATION_VERSION = '0.12';
@@ -27,11 +28,6 @@ function containsSensitiveKey(value) {
   return Object.entries(value).some(([key, child]) => isSensitiveKey(key) || containsSensitiveKey(child));
 }
 function isCompletedTaskState(value) { return value?.status === 'COMPLETED' || value?.completed === true; }
-function formatDateTime(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short' }).format(date);
-}
-
 export function createBackup(state = loadState(), exportedAt = new Date()) {
   return {
     backupVersion: BACKUP_VERSION,
@@ -43,9 +39,9 @@ export function createBackup(state = loadState(), exportedAt = new Date()) {
 }
 
 export function generateBackupFilename(date = new Date()) {
-  const value = date instanceof Date ? date : new Date(date);
-  const pad = number => String(number).padStart(2, '0');
-  return `reporter-training-backup-${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}-${pad(value.getHours())}${pad(value.getMinutes())}.json`;
+  const parts = getKoreanDateTimeParts(date);
+  const stamp = parts ? `${parts.year}-${parts.month}-${parts.day}-${parts.hour}${parts.minute}` : '';
+  return `reporter-training-backup-${stamp}.json`;
 }
 
 export function getLastBackupDate() {
@@ -189,7 +185,7 @@ export function previewBackup(backup, tasks = []) {
   return {
     ...validation,
     exportedAt:backup?.exportedAt || '',
-    exportedAtLabel:formatDateTime(backup?.exportedAt),
+    exportedAtLabel:formatKoreanDateTime(backup?.exportedAt),
     trainingName:data.settings?.trainingName || '교육명 미설정',
     taskCount:taskStates.length,
     completedCount:taskStates.filter(isCompletedTaskState).length,

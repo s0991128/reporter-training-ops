@@ -1,5 +1,6 @@
 import { getChecklistItemState, getChecklistStats, isThreeCheckItem } from './checklist.js';
 import { CHECKLIST_STATUS } from './storage.js';
+import { formatKoreanDateTime } from './datetime.js';
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character])); }
 
@@ -13,8 +14,7 @@ function statusLabel(status) {
 }
 
 function formatCompletedAt(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short' }).format(date);
+  return formatKoreanDateTime(value);
 }
 
 function renderItem(item, state) {

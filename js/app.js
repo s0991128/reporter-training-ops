@@ -16,6 +16,7 @@ import { filterChecklistItems, findChecklistSensitivePatterns, getChecklistItemS
 import { renderChecklistError, renderChecklistGroups, renderChecklistNavigation, renderChecklistSummary } from './checklist-ui.js';
 import { getHandoverSnapshot } from './handover.js';
 import { buildHandoverReportHtml, getHandoverReportFilename } from './handover-export.js';
+import { formatKoreanDateTime } from './datetime.js';
 
 const state = loadState();
 let tasks = [];
@@ -162,9 +163,7 @@ function handoverStatusLabel(status) {
 }
 
 function formatHandoverDate(value) {
-  if (!value) return '변경시각 없음';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '변경시각 없음' : new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short' }).format(date);
+  return formatKoreanDateTime(value, '변경시각 없음');
 }
 
 function renderHandoverItems(container, entries, emptyMessage = '해당 업무가 없습니다.') {
