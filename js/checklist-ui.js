@@ -5,35 +5,25 @@ import { formatKoreanDateTime } from './datetime.js';
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character])); }
 
 function statusLabel(status) {
-  return ({
-    [CHECKLIST_STATUS.NOT_STARTED]:'미착수',
-    [CHECKLIST_STATUS.IN_PROGRESS]:'진행중',
-    [CHECKLIST_STATUS.COMPLETED]:'완료',
-    [CHECKLIST_STATUS.NOT_APPLICABLE]:'해당없음'
-  })[status] || '미착수';
+  return ({ [CHECKLIST_STATUS.NOT_STARTED]:'미착수', [CHECKLIST_STATUS.IN_PROGRESS]:'진행중', [CHECKLIST_STATUS.COMPLETED]:'완료', [CHECKLIST_STATUS.NOT_APPLICABLE]:'해당없음' })[status] || '미착수';
 }
 
-function formatCompletedAt(value) {
-  return formatKoreanDateTime(value);
+function renderStatusControl(itemState, reviewPending, threeCheck) {
+  if (threeCheck) return `<span class="checklist-three-count">${itemState.checks.filter(Boolean).length}/3</span>`;
+  return `<select data-checklist-action="status-select" aria-label="업무 상태"><option value="NOT_STARTED" ${itemState.status === CHECKLIST_STATUS.NOT_STARTED ? 'selected' : ''}>미착수</option><option value="IN_PROGRESS" ${itemState.status === CHECKLIST_STATUS.IN_PROGRESS ? 'selected' : ''}>진행중</option><option value="COMPLETED" ${itemState.status === CHECKLIST_STATUS.COMPLETED ? 'selected' : ''}>완료</option><option value="NOT_APPLICABLE" ${itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? 'selected' : ''}>해당없음</option></select>`;
 }
 
-function renderItem(item, state) {
+function renderItem(item, state, expandedKey) {
   const itemState = getChecklistItemState(item, state);
   const threeCheck = isThreeCheckItem(item);
   const metadata = item.metadata || {};
   const reviewPending = metadata.reviewStatus === 'PENDING_REVIEW';
+  const expanded = expandedKey === item.key;
+  const disabled = reviewPending || itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? 'disabled' : '';
+  const detailChecks = threeCheck ? itemState.checks.map((checked, index) => `<label class="checklist-mini-check"><input type="checkbox" data-checklist-action="detail-check" data-checklist-index="${index}" ${checked ? 'checked' : ''} ${disabled} /> ${index + 1}차</label>`).join('') : '';
+  const memoLabel = itemState.memo ? '메모 있음' : '메모';
   const dependencyText = metadata.dependencies?.length ? `선행 ${metadata.dependencies.join(', ')}` : '선행업무 미등록';
-  const disabled = itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? 'disabled' : '';
-  const checks = threeCheck ? itemState.checks.map((checked, index) => `<label class="checklist-mini-check"><input type="checkbox" data-checklist-action="detail-check" data-checklist-index="${index}" ${checked ? 'checked' : ''} ${disabled} /> ${index + 1}차</label>`).join('') : '';
-  const completionControl = threeCheck
-    ? `<div class="checklist-three-checks" aria-label="3회 체크">${checks}</div>`
-    : `<label class="checklist-complete-control"><input type="checkbox" data-checklist-action="status-check" ${itemState.status === CHECKLIST_STATUS.COMPLETED ? 'checked' : ''} ${disabled} /> 완료</label>`;
-  const notApplicableLabel = itemState.status === CHECKLIST_STATUS.NOT_APPLICABLE ? '적용 업무로 되돌리기' : '해당없음';
-  return `<article class="checklist-item checklist-status-${itemState.status.toLowerCase()}" data-checklist-key="${escapeHtml(item.key)}">
-    <div class="checklist-item-copy"><div class="checklist-item-heading"><span class="checklist-key">${escapeHtml(item.key)}</span><span class="checklist-status-label">${statusLabel(itemState.status)}</span>${reviewPending ? '<span class="checklist-review-label">메타데이터 검토 필요</span>' : ''}</div><p class="checklist-work">${escapeHtml(item.work)}</p><p class="checklist-metadata">${escapeHtml(item.phase)} · ${escapeHtml(metadata.category || '기타')} · 담당 ${escapeHtml(metadata.assigneeRole || '검토 필요')} · ${escapeHtml(dependencyText)}</p>${item.note ? `<p class="checklist-note">비고 · ${escapeHtml(item.note)}</p>` : ''}${itemState.completedAt ? `<p class="checklist-completed-at">마지막 완료 ${escapeHtml(formatCompletedAt(itemState.completedAt))}</p>` : ''}</div>
-    <div class="checklist-item-controls">${completionControl}<button type="button" class="checklist-na-button" data-checklist-action="toggle-na">${notApplicableLabel}</button></div>
-    <label class="checklist-memo"><span>인수인계 메모</span><textarea data-checklist-action="memo" maxlength="300" placeholder="강사 회신 대기 중 · 내일 오전 재확인 등">${escapeHtml(itemState.memo)}</textarea></label>
-  </article>`;
+  return `<article class="checklist-row checklist-status-${itemState.status.toLowerCase()}" data-checklist-key="${escapeHtml(item.key)}"><div class="checklist-row-main"><span class="checklist-section-label">${escapeHtml(item.section)}</span><button type="button" class="checklist-work-button" data-checklist-action="toggle-details" aria-expanded="${expanded}">${escapeHtml(item.work)}</button><span class="checklist-status-cell">${renderStatusControl(itemState, reviewPending, threeCheck)}</span><span class="checklist-check-cell">${threeCheck ? '3회 체크' : statusLabel(itemState.status)}</span><button type="button" class="checklist-memo-button" data-checklist-action="toggle-details" aria-expanded="${expanded}">${memoLabel}</button></div>${expanded ? `<div class="checklist-row-detail"><div class="checklist-detail-meta"><span>${escapeHtml(item.key)}</span><span>${escapeHtml(item.phase)} · ${escapeHtml(metadata.category || '기타')} · 담당 ${escapeHtml(metadata.assigneeRole || '검토 필요')}</span><span>${escapeHtml(dependencyText)}</span>${reviewPending ? '<span class="checklist-review-label">메타데이터 검토 필요</span>' : ''}</div>${item.note ? `<p class="checklist-note">비고 · ${escapeHtml(item.note)}</p>` : ''}${itemState.completedAt ? `<p class="checklist-completed-at">마지막 완료 ${escapeHtml(formatKoreanDateTime(itemState.completedAt))}</p>` : ''}${threeCheck ? `<div class="checklist-three-checks" aria-label="3회 체크">${detailChecks}</div>` : ''}<label class="checklist-memo"><span>인수인계 메모</span><textarea data-checklist-action="memo" maxlength="300" placeholder="강사 회신 대기 중 · 내일 오전 재확인 등">${escapeHtml(itemState.memo)}</textarea></label></div>` : ''}</article>`;
 }
 
 export function renderChecklistSummary(container, items, state) {
@@ -50,22 +40,14 @@ export function renderChecklistSummary(container, items, state) {
 
 export function renderChecklistNavigation(container, groups, state, activeSection = '전체') {
   if (!container) return;
-  const overallStats = getChecklistStats(groups.flatMap(group => group.items), state);
-  container.innerHTML = [`<button type="button" class="checklist-section-nav ${activeSection === '전체' ? 'active' : ''}" data-checklist-section="전체"><span>전체 구간</span><strong>${overallStats.complete} / ${overallStats.applicable}</strong></button>`, ...groups.map(group => {
-    const stats = getChecklistStats(group.items, state);
-    return `<button type="button" class="checklist-section-nav ${activeSection === group.section ? 'active' : ''}" data-checklist-section="${escapeHtml(group.section)}"><span>${escapeHtml(group.section)}</span><strong>${stats.complete} / ${stats.applicable}</strong></button>`;
-  })].join('');
+  container.innerHTML = `<option value="전체">전체</option>${groups.map(group => { const stats = getChecklistStats(group.items, state); return `<option value="${escapeHtml(group.section)}">${escapeHtml(group.section)} · ${stats.complete}/${stats.applicable}</option>`; }).join('')}`;
+  container.value = activeSection;
 }
 
-export function renderChecklistGroups(container, groups, filteredItems, state, activeSection = '전체') {
+export function renderChecklistGroups(container, groups, filteredItems, state, activeSection = '전체', expandedKey = null) {
   if (!container) return;
-  const visibleKeys = new Set(filteredItems.map(item => item.key));
-  const visibleGroups = groups.map(group => ({ ...group, items:group.items.filter(item => visibleKeys.has(item.key)) })).filter(group => group.items.length);
-  if (!visibleGroups.length) { container.innerHTML = '<div class="checklist-empty">조건에 맞는 업무가 없습니다.<br /><small>검색어 또는 상태 필터를 조정해 보세요.</small></div>'; return; }
-  container.innerHTML = visibleGroups.map(group => {
-    const stats = getChecklistStats(group.items, state);
-    return `<details class="checklist-group" data-checklist-group="${escapeHtml(group.section)}" open><summary><span><strong>${escapeHtml(group.section)}</strong><small>${stats.complete} / ${stats.applicable} 완료</small></span><span class="checklist-group-arrow">⌄</span></summary><div class="checklist-group-items">${group.items.map(item => renderItem(item, state)).join('')}</div></details>`;
-  }).join('');
+  if (!filteredItems.length) { container.innerHTML = '<div class="checklist-empty">조건에 맞는 업무가 없습니다.<br /><small>검색어 또는 상태 필터를 조정해 보세요.</small></div>'; return; }
+  container.innerHTML = `<div class="checklist-list" role="list"><div class="checklist-list-head" aria-hidden="true"><span>구간</span><span>업무</span><span>상태</span><span>3회 체크</span><span>메모</span></div>${filteredItems.map(item => renderItem(item, state, expandedKey)).join('')}</div>`;
 }
 
 export function renderChecklistError(container, error) {

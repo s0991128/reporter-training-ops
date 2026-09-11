@@ -36,20 +36,21 @@ const resetConfirmation = document.querySelector('#reset-confirmation');
 const backupFileInput = document.querySelector('#backup-file-input');
 const dependencyConfirmation = document.querySelector('#dependency-confirmation');
 const dependencyConfirmMessage = document.querySelector('#dependency-confirm-message');
-const taskAdminPanel = document.querySelector('#task-admin-panel');
+const taskAdminPanel = document.querySelector('#task-admin-view');
 const taskAdminForm = document.querySelector('#task-admin-form');
 const taskCsvInput = document.querySelector('#task-csv-input');
-const gapAnalysisPanel = document.querySelector('#gap-analysis-panel');
+const gapAnalysisPanel = document.querySelector('#gap-analysis-view');
 const gapSourceInput = document.querySelector('#gap-source-input');
 const gapAnalysisMode = document.querySelector('#gap-analysis-mode');
 const gapResultSummary = document.querySelector('#gap-result-summary');
 const gapResultList = document.querySelector('#gap-result-list');
 const dashboardView = document.querySelector('#dashboard-view');
-const checklistView = document.querySelector('#checklist-view');
+const operationsView = document.querySelector('#operations-view');
 const handoverView = document.querySelector('#handover-view');
 const checklistSummary = document.querySelector('#checklist-summary');
-const checklistNav = document.querySelector('#checklist-section-nav');
+const checklistNav = document.querySelector('#checklist-section-select');
 const checklistSearchInput = document.querySelector('#checklist-search');
+const checklistSortInput = document.querySelector('#checklist-sort');
 const checklistGroups = document.querySelector('#checklist-groups');
 const checklistValidationMessage = document.querySelector('#checklist-validation-message');
 const checklistResultSummary = document.querySelector('#checklist-result-summary');
@@ -66,6 +67,9 @@ let checklistLoadError = null;
 let checklistSearch = '';
 let checklistFilter = 'all';
 let checklistSection = '전체';
+let checklistSort = 'default';
+let expandedChecklistKey = null;
+let activeView = 'OPERATIONS';
 let handoverHistoryExpanded = false;
 const memoTimers = new Map();
 const memoDrafts = new Map();
@@ -118,7 +122,7 @@ function render() {
   renderTasks(visibleTasks, state, taskList, activeTasks, budgetCategories);
   renderBudgetPanel(state, budgetCategories, activeTasks);
   document.querySelector('#result-summary').textContent = `${visibleTasks.length}개 업무 표시 중 · 전체 ${activeTasks.length}개`;
-  if (checklistView && !checklistView.hidden) renderChecklistView();
+  if (operationsView && !operationsView.hidden) renderChecklistView();
   if (handoverView && !handoverView.hidden) renderHandoverView();
 }
 
@@ -131,7 +135,7 @@ function setChecklistMessage(message = '', isError = false) {
 }
 
 function renderChecklistView() {
-  if (!checklistView) return;
+  if (!operationsView) return;
   if (checklistLoadError) {
     renderChecklistSummary(checklistSummary, [], state);
     renderChecklistError(checklistGroups, checklistLoadError);
@@ -145,7 +149,11 @@ function renderChecklistView() {
   if (currentSection) currentSection.textContent = `현재 진행 구간 · ${getCurrentChecklistSection(checklistData.groups, state)}`;
   renderChecklistNavigation(checklistNav, checklistData.groups, state, checklistSection);
   const filtered = filterChecklistItems(checklistData.items, state, { query:checklistSearch, filter:checklistFilter, section:checklistSection });
-  renderChecklistGroups(checklistGroups, checklistData.groups, filtered, state, checklistSection);
+  const sorted = checklistSort === 'status' ? [...filtered].sort((first, second) => {
+    const order = { NOT_STARTED:0, IN_PROGRESS:1, COMPLETED:2, NOT_APPLICABLE:3 };
+    return (order[getChecklistItemState(first, state).status] ?? 9) - (order[getChecklistItemState(second, state).status] ?? 9);
+  }) : filtered;
+  renderChecklistGroups(checklistGroups, checklistData.groups, sorted, state, checklistSection, expandedChecklistKey);
   const expectationMessage = checklistData.report?.expectedMismatches?.length ? `기준값 확인 필요: ${checklistData.report.expectedMismatches.join(' · ')}` : `업무목록.csv 검증 PASS · ${checklistData.report?.total || 0}건 · ${checklistData.report?.sections?.length || 0}구간 · 3회 체크 ${checklistData.report?.threeCheck || 0}건`;
   setChecklistMessage(expectationMessage, Boolean(checklistData.report?.expectedMismatches?.length));
   if (checklistResultSummary) checklistResultSummary.textContent = `${filtered.length}개 업무 표시 중 · 전체 ${stats.total}개`;
@@ -223,25 +231,27 @@ function renderHandoverView() {
   if (note && document.activeElement !== note) note.value = snapshot.handover.note || '';
 }
 
-function showDashboard() {
-  if (dashboardView) dashboardView.hidden = false;
-  if (checklistView) checklistView.hidden = true;
-  if (handoverView) handoverView.hidden = true;
+function closeManagementMenu() {
+  const menu = document.querySelector('#management-menu');
+  const button = document.querySelector('#management-menu-button');
+  if (menu) menu.hidden = true;
+  if (button) button.setAttribute('aria-expanded', 'false');
 }
 
-function showChecklist() {
+function showView(viewName) {
+  const views = { OPERATIONS:operationsView, HANDOVER:handoverView, GAP:gapAnalysisPanel, BUDGET:document.querySelector('#budget-view'), TASK_MASTER:taskAdminPanel };
+  Object.entries(views).forEach(([name, view]) => { if (view) view.hidden = name !== viewName; });
   if (dashboardView) dashboardView.hidden = true;
-  if (checklistView) checklistView.hidden = false;
-  if (handoverView) handoverView.hidden = true;
-  renderChecklistView();
-  checklistSearchInput?.focus();
-}
-
-function showHandover() {
-  if (dashboardView) dashboardView.hidden = true;
-  if (checklistView) checklistView.hidden = true;
-  if (handoverView) handoverView.hidden = false;
-  renderHandoverView();
+  activeView = viewName;
+  document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === viewName));
+  document.querySelector('#management-menu-button')?.classList.toggle('active', viewName === 'TASK_MASTER');
+  closeManagementMenu();
+  if (viewName === 'OPERATIONS') renderChecklistView();
+  if (viewName === 'HANDOVER') renderHandoverView();
+  if (viewName === 'GAP') renderGapView();
+  if (viewName === 'BUDGET') { populateBudgetOptions(); resetTransactionForm(); }
+  if (viewName === 'TASK_MASTER') renderTaskAdminView();
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
 function syncChecklistState() {
@@ -289,6 +299,11 @@ function handleChecklistChange(event) {
   const item = findChecklistItem(card?.dataset.checklistKey);
   if (!item) return;
   const current = getChecklistItemState(item, state);
+  if (action === 'status-select') {
+    const status = event.target.value;
+    updateChecklistItemState(item, { status, completedAt:status === CHECKLIST_STATUS.COMPLETED ? new Date().toISOString() : null, checks:[], memo:current.memo });
+    return;
+  }
   if (action === 'status-check') {
     updateChecklistItemState(item, { status:event.target.checked ? CHECKLIST_STATUS.COMPLETED : CHECKLIST_STATUS.NOT_STARTED, completedAt:event.target.checked ? new Date().toISOString() : null, checks:[], memo:current.memo });
     return;
@@ -301,12 +316,17 @@ function handleChecklistChange(event) {
 }
 
 function handleChecklistClick(event) {
-  const navButton = event.target.closest('[data-checklist-section]');
-  if (navButton) { checklistSection = navButton.dataset.checklistSection; renderChecklistView(); return; }
   const filterButton = event.target.closest('[data-checklist-filter]');
   if (filterButton) {
     checklistFilter = filterButton.dataset.checklistFilter;
     document.querySelectorAll('[data-checklist-filter]').forEach(button => button.classList.toggle('active', button === filterButton));
+    renderChecklistView();
+    return;
+  }
+  const detailButton = event.target.closest('[data-checklist-action="toggle-details"]');
+  if (detailButton) {
+    const card = detailButton.closest('[data-checklist-key]');
+    expandedChecklistKey = expandedChecklistKey === card?.dataset.checklistKey ? null : card?.dataset.checklistKey || null;
     renderChecklistView();
     return;
   }
@@ -582,14 +602,12 @@ function populateBudgetOptions() {
 }
 
 function openBudgetPanel() {
-  populateBudgetOptions();
-  resetTransactionForm();
-  document.querySelector('#budget-panel').hidden = false;
+  showView('BUDGET');
   document.querySelector('#transaction-description').focus();
 }
 
 function closeBudgetPanel() {
-  document.querySelector('#budget-panel').hidden = true;
+  showView('OPERATIONS');
   resetTransactionForm();
 }
 
@@ -680,13 +698,12 @@ function renderTaskAdminView() {
 function openTaskAdmin() {
   if (!adminSession) adminSession = createTaskAdminSession(tasks);
   clearAdminAiReference();
-  renderTaskAdminView();
-  taskAdminPanel.hidden = false;
+  showView('TASK_MASTER');
   document.querySelector('#admin-search').focus();
 }
 
 function closeTaskAdmin() {
-  taskAdminPanel.hidden = true;
+  showView('OPERATIONS');
   if (adminSession) cancelAdminEdit(adminSession);
   clearAdminAiReference();
 }
@@ -720,9 +737,7 @@ function openTaskAdminFromGap(result, taskId = null) {
     adminSession.draft.tags = Array.isArray(result.suggestedTags) ? result.suggestedTags : [];
   }
   showTaskAdminMessage(existingTaskId ? '기존 업무를 AI 누락점검 참고와 함께 열었습니다. 원본은 자동 변경되지 않습니다.' : '신규업무 후보를 편집 화면으로 전달했습니다. 단계·일정·필수여부·담당·완료기준·dependency를 확인해 주세요.');
-  gapAnalysisPanel.hidden = true;
-  renderTaskAdminView();
-  taskAdminPanel.hidden = false;
+  showView('TASK_MASTER');
   setAdminAiReference(result, existingTaskId ? '기존업무 보강 후보' : '신규업무 후보');
   document.querySelector('#task-admin-title')?.scrollIntoView({ block:'nearest' });
 }
@@ -766,12 +781,11 @@ function renderGapView() {
 }
 
 function openGapAnalysis() {
-  renderGapView();
-  gapAnalysisPanel.hidden = false;
+  showView('GAP');
   gapSourceInput.focus();
 }
 
-function closeGapAnalysis() { gapAnalysisPanel.hidden = true; }
+function closeGapAnalysis() { showView('OPERATIONS'); }
 
 async function importGapSources(event) {
   const files = [...(event.target.files || [])];
@@ -992,9 +1006,6 @@ function handleTaskAdminAction(event) {
   if (action === 'validate') { showTaskAdminMessage('현재 편집 세션을 다시 검증했습니다.'); renderTaskAdminView(); }
 }
 
-document.querySelector('#gap-analysis-button').addEventListener('click', openGapAnalysis);
-document.querySelector('#gap-analysis-close').addEventListener('click', closeGapAnalysis);
-gapAnalysisPanel.addEventListener('click', event => { if (event.target === gapAnalysisPanel) closeGapAnalysis(); });
 gapSourceInput.addEventListener('change', importGapSources);
 document.querySelector('#gap-analysis-run').addEventListener('click', runGapAnalysis);
 gapResultSummary.addEventListener('click', event => {
@@ -1004,9 +1015,7 @@ gapResultSummary.addEventListener('click', event => {
   renderGapView();
 });
 document.querySelector('#task-admin-button').addEventListener('click', openTaskAdmin);
-document.querySelector('#task-admin-close').addEventListener('click', closeTaskAdmin);
 taskAdminPanel.addEventListener('click', event => {
-  if (event.target === taskAdminPanel) { closeTaskAdmin(); return; }
   handleTaskAdminAction(event);
 });
 taskAdminPanel.addEventListener('input', event => {
@@ -1023,16 +1032,22 @@ taskAdminPanel.addEventListener('change', event => {
 taskAdminForm.addEventListener('submit', saveAdminTask);
 taskCsvInput.addEventListener('change', importAdminCsv);
 
-document.querySelector('#checklist-button').addEventListener('click', showChecklist);
-document.querySelector('#handover-button').addEventListener('click', showHandover);
-document.querySelector('#handover-checklist-button').addEventListener('click', showChecklist);
+document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+document.querySelector('#management-menu-button').addEventListener('click', event => {
+  event.stopPropagation();
+  const menu = document.querySelector('#management-menu');
+  const isOpen = !menu.hidden;
+  menu.hidden = isOpen;
+  event.currentTarget.setAttribute('aria-expanded', String(!isOpen));
+});
+document.addEventListener('click', event => { if (!event.target.closest('.management-menu')) closeManagementMenu(); });
+document.querySelector('#handover-checklist-button').addEventListener('click', () => showView('OPERATIONS'));
 document.querySelector('#handover-export').addEventListener('click', exportHandoverReport);
 document.querySelector('#handover-history-more').addEventListener('click', () => { handoverHistoryExpanded = !handoverHistoryExpanded; renderHandoverView(); });
 document.querySelector('#handover-note-save').addEventListener('click', saveHandoverNoteFromForm);
 handoverView.addEventListener('input', handleHandoverNoteInput);
-document.querySelector('#dashboard-button').addEventListener('click', showDashboard);
-document.querySelector('#checklist-back').addEventListener('click', showDashboard);
-checklistNav.addEventListener('click', handleChecklistClick);
+checklistNav.addEventListener('change', event => { checklistSection = event.target.value; expandedChecklistKey = null; renderChecklistView(); });
+checklistSortInput.addEventListener('change', event => { checklistSort = event.target.value; renderChecklistView(); });
 document.querySelector('.checklist-filters').addEventListener('click', handleChecklistClick);
 checklistSearchInput.addEventListener('input', event => { checklistSearch = event.target.value; renderChecklistView(); });
 checklistGroups.addEventListener('click', handleChecklistClick);
@@ -1106,10 +1121,7 @@ document.querySelector('#reset-cancel').addEventListener('click', closeResetConf
 document.querySelector('#reset-confirm').addEventListener('click', resetUserData);
 resetConfirmation.addEventListener('click', event => { if (event.target === resetConfirmation) closeResetConfirmation(); });
 document.querySelector('#budget-button').addEventListener('click', openBudgetPanel);
-document.querySelector('#budget-menu-button').addEventListener('click', openBudgetPanel);
-document.querySelector('#budget-close').addEventListener('click', closeBudgetPanel);
-document.querySelector('#budget-panel').addEventListener('click', event => {
-  if (event.target.id === 'budget-panel') { closeBudgetPanel(); return; }
+document.querySelector('#budget-view').addEventListener('click', event => {
   const actionButton = event.target.closest('[data-budget-action]');
   if (!actionButton) return;
   const transactionId = actionButton.dataset.transactionId;
@@ -1130,7 +1142,7 @@ document.addEventListener('keydown', event => {
   else if (!taskAdminPanel.hidden) closeTaskAdmin();
   else if (!dataPanel.hidden) closeDataPanel();
   else if (!settingsPanel.hidden) closeSettings();
-  else if (!document.querySelector('#budget-panel').hidden) closeBudgetPanel();
+  else if (!document.querySelector('#budget-view').hidden) closeBudgetPanel();
 });
 
 initializeTasks();
