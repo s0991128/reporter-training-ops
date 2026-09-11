@@ -876,3 +876,45 @@ footer { color:#82919c; font-size:11px; }
   .checklist-summary .checklist-kpi-card { height:96px; min-height:96px; }
   .checklist-summary-caption { white-space:normal; }
 }
+
+/* v0.14 final typography and fixed KPI layout */
+body { font-family:'Pretendard','SUIT',system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+.brand-block h1 { font-size:34px; font-weight:800; letter-spacing:-.045em; }
+.brand-block .subtitle { font-size:14px; }
+.checklist-page-heading .checklist-current-section { font-size:14px !important; }
+.checklist-summary .checklist-kpi-card { width:auto; min-width:0; height:112px; min-height:112px; padding:16px 17px; border-radius:10px; align-self:stretch; }
+.checklist-summary .checklist-kpi-label { font-family:inherit; font-size:13px !important; font-weight:600; }
+.checklist-summary .checklist-kpi-card > strong { font-family:inherit !important; font-size:36px !important; font-weight:800; line-height:1.05; letter-spacing:-.045em; }
+.checklist-summary .checklist-kpi-current > strong { color:#fff !important; font-size:24px !important; letter-spacing:-.025em; }
+.checklist-summary .checklist-kpi-progress .progress-track { margin-top:11px; }
+.checklist-summary .checklist-kpi-complete, .checklist-summary .checklist-kpi-in-progress, .checklist-summary .checklist-kpi-pending { border-top-width:3px; }
+.checklist-summary .checklist-kpi-pending { border-top-color:#8aa4b4; }
+.checklist-summary .checklist-kpi-pending > strong { color:#304d60 !important; }
+.checklist-summary .checklist-kpi-secondary > strong { font-size:36px !important; }
+.checklist-summary .checklist-kpi-secondary small { font-family:inherit; font-size:11px; }
+.checklist-step { font-family:inherit; font-size:12px; }
+.checklist-filter { font-family:inherit; font-size:12px; }
+.checklist-search input { font-family:inherit; font-size:14px; }
+.checklist-list-head { font-family:inherit; font-size:14px; font-weight:700; line-height:1.3; }
+.checklist-section-label { font-family:inherit; font-size:13px; font-weight:600; }
+.checklist-work-button { font-family:inherit; font-size:15.5px; font-weight:700; }
+.checklist-status-cell select { font-family:inherit; font-size:14px; font-weight:600; }
+.checklist-check-cell, .checklist-three-count { font-family:inherit; font-size:13px; }
+.checklist-memo-button { font-family:inherit; font-size:14px; font-weight:600; }
+
+@media (min-width:1366px) {
+  .checklist-summary { grid-template-columns:repeat(6, minmax(0, 1fr)); gap:14px; }
+  .checklist-summary .checklist-kpi-current, .checklist-summary .checklist-kpi-progress, .checklist-summary .checklist-kpi-complete, .checklist-summary .checklist-kpi-in-progress, .checklist-summary .checklist-kpi-pending, .checklist-summary .checklist-kpi-secondary { grid-column:auto; }
+}
+
+@media (max-width:1365px) and (min-width:721px) {
+  .checklist-summary { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
+  .checklist-summary .checklist-kpi-current, .checklist-summary .checklist-kpi-progress, .checklist-summary .checklist-kpi-complete, .checklist-summary .checklist-kpi-in-progress, .checklist-summary .checklist-kpi-pending, .checklist-summary .checklist-kpi-secondary { grid-column:auto; }
+  .checklist-summary .checklist-kpi-card { height:108px; min-height:108px; }
+}
+
+@media (max-width:720px) {
+  .checklist-summary .checklist-kpi-card { height:96px; min-height:96px; padding:13px 14px; }
+  .checklist-summary .checklist-kpi-card > strong { font-size:28px !important; }
+  .checklist-summary .checklist-kpi-current > strong { font-size:20px !important; }
+}
