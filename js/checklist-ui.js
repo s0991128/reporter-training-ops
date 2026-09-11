@@ -49,8 +49,9 @@ export function renderChecklistGroups(container, groups, filteredItems, state, a
   if (!filteredItems.length) { container.innerHTML = '<div class="checklist-empty">조건에 맞는 업무가 없습니다.<br /><small>검색어 또는 상태 필터를 조정해 보세요.</small></div>'; return; }
   const visibleKeys = new Set(filteredItems.map(item => item.key));
   const renderedGroups = groups.map(group => ({ ...group, items:group.items.filter(item => visibleKeys.has(item.key)) })).filter(group => group.items.length);
-  const rows = activeSection === '전체'
-    ? renderedGroups.map(group => `<section class="checklist-section-block"><h3>${escapeHtml(group.section)}</h3>${group.items.map(item => renderItem(item, state, expandedKey)).join('')}</section>`).join('')
+  const showSectionHeadings = activeSection === '전체' || activeSection === '현재+다음';
+  const rows = showSectionHeadings
+    ? renderedGroups.map((group, index) => `<section class="checklist-section-block"><h3>${escapeHtml(activeSection === '현재+다음' && index > 0 ? `${group.section} · 다음 구간 미리보기` : group.section)}</h3>${group.items.map(item => renderItem(item, state, expandedKey)).join('')}</section>`).join('')
     : filteredItems.map(item => renderItem(item, state, expandedKey)).join('');
   container.innerHTML = `<div class="checklist-list" role="list"><div class="checklist-list-head" aria-hidden="true"><span>구간</span><span>업무</span><span>상태</span><span>3회 체크</span><span>메모</span></div>${rows}</div>`;
 }

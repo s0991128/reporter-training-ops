@@ -139,13 +139,24 @@ function setChecklistMessage(message = '', isError = false) {
 function renderChecklistSteps(currentSection) {
   if (!checklistStepNavigation) return;
   const currentIndex = checklistData.groups.findIndex(group => group.section === currentSection);
-  checklistStepNavigation.innerHTML = checklistData.groups.map((group, index) => {
+  const getMarker = (group, index) => {
     const stats = renderChecklistSummary(null, group.items, state);
     const previousIncomplete = index < currentIndex && (stats.pending > 0 || stats.progress > 0);
-    const marker = group.section === currentSection ? '●' : previousIncomplete ? '!' : stats.pending === 0 && stats.progress === 0 ? '✓' : '○';
-    const markerClass = marker === '●' ? 'current' : marker === '!' ? 'attention' : marker === '✓' ? 'complete' : 'pending';
-    return `<button type="button" class="checklist-step ${group.section === checklistSection ? 'active' : ''} checklist-step-${markerClass}" data-checklist-section="${escapeHtml(group.section)}" aria-label="${escapeHtml(group.section)} ${marker}"><span>${marker}</span>${escapeHtml(group.section.replace(' ~ ', '–'))}</button>`;
-  }).join('');
+    return group.section === currentSection ? { marker:'●', markerClass:'current' } : previousIncomplete ? { marker:'!', markerClass:'attention' } : stats.pending === 0 && stats.progress === 0 ? { marker:'✓', markerClass:'complete' } : { marker:'○', markerClass:'pending' };
+  };
+  const previousGroup = currentIndex > 0 ? checklistData.groups[currentIndex - 1] : null;
+  const currentGroup = checklistData.groups[currentIndex] || checklistData.groups[0];
+  const nextGroup = currentIndex >= 0 && currentIndex < checklistData.groups.length - 1 ? checklistData.groups[currentIndex + 1] : null;
+  const renderAdjacent = (group, direction) => {
+    if (!group) return `<button type="button" class="checklist-step checklist-step-adjacent is-disabled" disabled><span aria-hidden="true">${direction === 'previous' ? '←' : '→'}</span><span>${direction === 'previous' ? '이전 구간' : '다음 구간'}</span></button>`;
+    const index = checklistData.groups.indexOf(group);
+    const { marker, markerClass } = getMarker(group, index);
+    const arrow = direction === 'previous' ? '←' : '→';
+    return `<button type="button" class="checklist-step checklist-step-adjacent checklist-step-${markerClass}" data-checklist-section="${escapeHtml(group.section)}" aria-label="${direction === 'previous' ? '이전' : '다음'} 구간 ${escapeHtml(group.section)} ${marker}"><span aria-hidden="true">${arrow}</span><span>${direction === 'previous' ? '이전 구간' : '다음 구간'}</span><small>${escapeHtml(group.section.replace(' ~ ', '–'))}</small></button>`;
+  };
+  const currentMarker = getMarker(currentGroup, currentIndex);
+  const selectedSection = checklistSection === '전체' ? '전체' : checklistSection === currentSection ? '' : checklistSection;
+  checklistStepNavigation.innerHTML = `${renderAdjacent(previousGroup, 'previous')}<button type="button" class="checklist-step checklist-step-current ${checklistSection === currentSection ? 'active' : ''}" data-checklist-section="${escapeHtml(currentGroup.section)}" aria-label="현재 구간 ${escapeHtml(currentGroup.section)} ${currentMarker.marker}"><span>${currentMarker.marker}</span><span>현재 구간</span><strong>${escapeHtml(currentGroup.section.replace(' ~ ', '–'))}</strong></button>${renderAdjacent(nextGroup, 'next')}<label class="checklist-step-all ${checklistSection === '전체' ? 'is-active' : ''}"><select data-checklist-section-select aria-label="전체 구간 선택"><option value="" ${selectedSection === '' ? 'selected' : ''}>전체 구간 ▾</option><option value="전체" ${selectedSection === '전체' ? 'selected' : ''}>전체 업무</option>${checklistData.groups.map(group => `<option value="${escapeHtml(group.section)}" ${selectedSection === group.section ? 'selected' : ''}>${escapeHtml(group.section)}</option>`).join('')}</select></label>`;
 }
 
 function renderChecklistPrioritySummary() {
@@ -178,14 +189,19 @@ function renderChecklistView() {
   renderChecklistSteps(currentSectionName);
   renderChecklistPrioritySummary();
   const filtered = filterChecklistItems(checklistData.items, state, { query:checklistSearch, filter:checklistFilter, section:checklistSection });
-  const sorted = checklistSort === 'status' ? [...filtered].sort((first, second) => {
+  const currentGroupIndex = checklistData.groups.findIndex(group => group.section === currentSectionName);
+  const nextGroup = currentGroupIndex >= 0 ? checklistData.groups[currentGroupIndex + 1] : null;
+  const showNextPreview = checklistFilter === 'all' && !checklistSearch && checklistSection === currentSectionName && filtered.length < 4 && nextGroup;
+  const displayItems = showNextPreview ? [...filtered, ...nextGroup.items.slice(0, 4 - filtered.length)] : filtered;
+  const displaySection = showNextPreview ? '현재+다음' : checklistSection;
+  const sorted = checklistSort === 'status' ? [...displayItems].sort((first, second) => {
     const order = { NOT_STARTED:0, IN_PROGRESS:1, COMPLETED:2, NOT_APPLICABLE:3 };
     return (order[getChecklistItemState(first, state).status] ?? 9) - (order[getChecklistItemState(second, state).status] ?? 9);
-  }) : filtered;
-  renderChecklistGroups(checklistGroups, checklistData.groups, sorted, state, checklistSection, expandedChecklistKey);
+  }) : displayItems;
+  renderChecklistGroups(checklistGroups, checklistData.groups, sorted, state, displaySection, expandedChecklistKey);
   const expectationMessage = checklistData.report?.expectedMismatches?.length ? `기준값 확인 필요: ${checklistData.report.expectedMismatches.join(' · ')}` : `업무목록.csv 검증 PASS · ${checklistData.report?.total || 0}건 · ${checklistData.report?.sections?.length || 0}구간 · 3회 체크 ${checklistData.report?.threeCheck || 0}건`;
   setChecklistMessage(expectationMessage, Boolean(checklistData.report?.expectedMismatches?.length));
-  if (checklistResultSummary) checklistResultSummary.textContent = `${filtered.length}개 업무 표시 중 · 전체 ${stats.total}개`;
+  if (checklistResultSummary) checklistResultSummary.textContent = `${displayItems.length}개 업무 표시 중${showNextPreview ? ` · 다음 구간 ${displayItems.length - filtered.length}건 미리보기` : ''} · 전체 ${stats.total}개`;
 }
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character])); }
@@ -1110,6 +1126,15 @@ checklistStepNavigation.addEventListener('click', event => {
   const step = event.target.closest('[data-checklist-section]');
   if (!step) return;
   checklistSection = step.dataset.checklistSection;
+  checklistFilter = 'all';
+  expandedChecklistKey = null;
+  document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.remove('active'));
+  renderChecklistView();
+});
+checklistStepNavigation.addEventListener('change', event => {
+  const select = event.target.closest('[data-checklist-section-select]');
+  if (!select || !select.value) return;
+  checklistSection = select.value;
   checklistFilter = 'all';
   expandedChecklistKey = null;
   document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.remove('active'));
