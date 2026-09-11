@@ -13,7 +13,7 @@ import { AI_MODES, analyzeGap } from './ai-adapter.js';
 import { GAP_INPUT_LIMITS, findSensitivePatterns, getSourceType, validateGapSources } from './gap-analysis.js';
 import { renderGapResults, renderGapSources, renderGapSummary } from './gap-ui.js';
 import { filterChecklistItems, findChecklistSensitivePatterns, getChecklistItemState, getCurrentChecklistSection, loadChecklist } from './checklist.js';
-import { renderChecklistError, renderChecklistGroups, renderChecklistNavigation, renderChecklistSummary } from './checklist-ui.js';
+import { renderChecklistError, renderChecklistGroups, renderChecklistSummary } from './checklist-ui.js';
 import { getHandoverSnapshot } from './handover.js';
 import { buildHandoverReportHtml, getHandoverReportFilename } from './handover-export.js';
 import { formatKoreanDateTime } from './datetime.js';
@@ -48,9 +48,9 @@ const dashboardView = document.querySelector('#dashboard-view');
 const operationsView = document.querySelector('#operations-view');
 const handoverView = document.querySelector('#handover-view');
 const checklistSummary = document.querySelector('#checklist-summary');
-const checklistNav = document.querySelector('#checklist-section-select');
 const checklistSearchInput = document.querySelector('#checklist-search');
-const checklistSortInput = document.querySelector('#checklist-sort');
+const checklistStepNavigation = document.querySelector('#checklist-step-navigation');
+const checklistPrioritySummary = document.querySelector('#checklist-priority-summary');
 const checklistGroups = document.querySelector('#checklist-groups');
 const checklistValidationMessage = document.querySelector('#checklist-validation-message');
 const checklistResultSummary = document.querySelector('#checklist-result-summary');
@@ -83,6 +83,8 @@ async function initializeTasks() {
       checklistData = await loadChecklist();
       operationalTasks = checklistData.tasks || [];
       checklistLoadError = null;
+      checklistSection = getCurrentChecklistSection(checklistData.groups, state);
+      if (!checklistData.groups.some(group => group.section === checklistSection)) checklistSection = '전체';
     } catch (error) {
       checklistLoadError = error;
       operationalTasks = [];
@@ -134,20 +136,47 @@ function setChecklistMessage(message = '', isError = false) {
   checklistValidationMessage.classList.toggle('is-error', isError);
 }
 
+function renderChecklistSteps(currentSection) {
+  if (!checklistStepNavigation) return;
+  const currentIndex = checklistData.groups.findIndex(group => group.section === currentSection);
+  checklistStepNavigation.innerHTML = checklistData.groups.map((group, index) => {
+    const stats = renderChecklistSummary(null, group.items, state);
+    const previousIncomplete = index < currentIndex && (stats.pending > 0 || stats.progress > 0);
+    const marker = group.section === currentSection ? '●' : previousIncomplete ? '!' : stats.pending === 0 && stats.progress === 0 ? '✓' : '○';
+    const markerClass = marker === '●' ? 'current' : marker === '!' ? 'attention' : marker === '✓' ? 'complete' : 'pending';
+    return `<button type="button" class="checklist-step ${group.section === checklistSection ? 'active' : ''} checklist-step-${markerClass}" data-checklist-section="${escapeHtml(group.section)}" aria-label="${escapeHtml(group.section)} ${marker}"><span>${marker}</span>${escapeHtml(group.section.replace(' ~ ', '–'))}</button>`;
+  }).join('');
+}
+
+function renderChecklistPrioritySummary() {
+  if (!checklistPrioritySummary || checklistLoadError) return;
+  const snapshot = getHandoverSnapshot(checklistData.items, checklistData.groups, state, { historyLimit:0 });
+  const entries = snapshot.firstItems.slice(0, 3);
+  if (!entries.length) { checklistPrioritySummary.hidden = true; return; }
+  checklistPrioritySummary.hidden = false;
+  checklistPrioritySummary.innerHTML = `<strong>먼저 확인 ${entries.length}건</strong><span>${entries.map(entry => `<button type="button" data-checklist-focus-key="${escapeHtml(entry.item.key)}">${escapeHtml(entry.item.work)}</button>`).join('<i aria-hidden="true">·</i>')}</span>`;
+}
+
 function renderChecklistView() {
   if (!operationsView) return;
   if (checklistLoadError) {
     renderChecklistSummary(checklistSummary, [], state);
     renderChecklistError(checklistGroups, checklistLoadError);
-    if (checklistNav) checklistNav.innerHTML = '';
+    if (checklistStepNavigation) checklistStepNavigation.innerHTML = '';
     setChecklistMessage('업무목록.csv를 불러오지 못했습니다. 원인과 행 번호를 확인해 주세요.', true);
     if (checklistResultSummary) checklistResultSummary.textContent = '체크리스트를 표시할 수 없습니다.';
     return;
   }
   const stats = renderChecklistSummary(checklistSummary, checklistData.items, state);
+  const currentSectionName = getCurrentChecklistSection(checklistData.groups, state);
   const currentSection = document.querySelector('#checklist-current-section');
-  if (currentSection) currentSection.textContent = `현재 진행 구간 · ${getCurrentChecklistSection(checklistData.groups, state)}`;
-  renderChecklistNavigation(checklistNav, checklistData.groups, state, checklistSection);
+  if (currentSection) currentSection.textContent = `현재 진행 구간 · ${currentSectionName}`;
+  const currentSummary = checklistSummary?.querySelector('[data-checklist-summary="current"]');
+  if (currentSummary) currentSummary.textContent = currentSectionName;
+  document.querySelector('[data-checklist-scope="current"]')?.classList.toggle('active', checklistFilter === 'all' && checklistSection === currentSectionName);
+  document.querySelector('[data-checklist-scope="all"]')?.classList.toggle('active', checklistFilter === 'all' && checklistSection === '전체');
+  renderChecklistSteps(currentSectionName);
+  renderChecklistPrioritySummary();
   const filtered = filterChecklistItems(checklistData.items, state, { query:checklistSearch, filter:checklistFilter, section:checklistSection });
   const sorted = checklistSort === 'status' ? [...filtered].sort((first, second) => {
     const order = { NOT_STARTED:0, IN_PROGRESS:1, COMPLETED:2, NOT_APPLICABLE:3 };
@@ -244,7 +273,7 @@ function showView(viewName) {
   if (dashboardView) dashboardView.hidden = true;
   activeView = viewName;
   document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === viewName));
-  document.querySelector('#management-menu-button')?.classList.toggle('active', viewName === 'TASK_MASTER');
+  document.querySelector('#management-menu-button')?.classList.toggle('active', ['TASK_MASTER', 'HANDOVER', 'GAP'].includes(viewName));
   closeManagementMenu();
   if (viewName === 'OPERATIONS') renderChecklistView();
   if (viewName === 'HANDOVER') renderHandoverView();
@@ -316,10 +345,20 @@ function handleChecklistChange(event) {
 }
 
 function handleChecklistClick(event) {
+  const scopeButton = event.target.closest('[data-checklist-scope]');
+  if (scopeButton) {
+    checklistFilter = 'all';
+    checklistSection = scopeButton.dataset.checklistScope === 'current' ? getCurrentChecklistSection(checklistData.groups, state) : '전체';
+    expandedChecklistKey = null;
+    document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.remove('active'));
+    scopeButton.classList.add('active');
+    renderChecklistView();
+    return;
+  }
   const filterButton = event.target.closest('[data-checklist-filter]');
   if (filterButton) {
     checklistFilter = filterButton.dataset.checklistFilter;
-    document.querySelectorAll('[data-checklist-filter]').forEach(button => button.classList.toggle('active', button === filterButton));
+    document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.toggle('active', button === filterButton));
     renderChecklistView();
     return;
   }
@@ -604,6 +643,20 @@ function populateBudgetOptions() {
 function openBudgetPanel() {
   showView('BUDGET');
   document.querySelector('#transaction-description').focus();
+}
+
+function focusChecklistItem(key) {
+  const item = findChecklistItem(key);
+  if (!item) return;
+  checklistSection = item.section;
+  checklistFilter = 'all';
+  checklistSearch = '';
+  checklistSearchInput.value = '';
+  expandedChecklistKey = item.key;
+  document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.remove('active'));
+  document.querySelector('[data-checklist-scope="current"]')?.classList.add('active');
+  renderChecklistView();
+  document.querySelector(`[data-checklist-key="${item.key}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
 function closeBudgetPanel() {
@@ -1046,9 +1099,26 @@ document.querySelector('#handover-export').addEventListener('click', exportHando
 document.querySelector('#handover-history-more').addEventListener('click', () => { handoverHistoryExpanded = !handoverHistoryExpanded; renderHandoverView(); });
 document.querySelector('#handover-note-save').addEventListener('click', saveHandoverNoteFromForm);
 handoverView.addEventListener('input', handleHandoverNoteInput);
-checklistNav.addEventListener('change', event => { checklistSection = event.target.value; expandedChecklistKey = null; renderChecklistView(); });
-checklistSortInput.addEventListener('change', event => { checklistSort = event.target.value; renderChecklistView(); });
 document.querySelector('.checklist-filters').addEventListener('click', handleChecklistClick);
+document.querySelector('#secondary-checklist-filters').addEventListener('click', handleChecklistClick);
+document.querySelector('#checklist-filter-more').addEventListener('click', event => {
+  const filters = document.querySelector('#secondary-checklist-filters');
+  filters.hidden = !filters.hidden;
+  event.currentTarget.setAttribute('aria-expanded', String(!filters.hidden));
+});
+checklistStepNavigation.addEventListener('click', event => {
+  const step = event.target.closest('[data-checklist-section]');
+  if (!step) return;
+  checklistSection = step.dataset.checklistSection;
+  checklistFilter = 'all';
+  expandedChecklistKey = null;
+  document.querySelectorAll('[data-checklist-filter], [data-checklist-scope]').forEach(button => button.classList.remove('active'));
+  renderChecklistView();
+});
+checklistPrioritySummary.addEventListener('click', event => {
+  const button = event.target.closest('[data-checklist-focus-key]');
+  if (button) focusChecklistItem(button.dataset.checklistFocusKey);
+});
 checklistSearchInput.addEventListener('input', event => { checklistSearch = event.target.value; renderChecklistView(); });
 checklistGroups.addEventListener('click', handleChecklistClick);
 checklistGroups.addEventListener('change', handleChecklistChange);
