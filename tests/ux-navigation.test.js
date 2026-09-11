@@ -6,6 +6,12 @@ const app = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
 const checklistUi = readFileSync(new URL('../js/checklist-ui.js', import.meta.url), 'utf8');
 
 assert.match(html, /data-view="OPERATIONS">교육운영/);
+assert.match(html, /<title>수습기자 기본교육 운영<\/title>/);
+assert.doesNotMatch(html, /수습기자 기본교육 운영 미니리더/);
+assert.match(html, /data-checklist-summary="current"/);
+assert.match(html, /data-checklist-summary="percent"/);
+assert.match(html, /checklist-kpi-card/);
+assert.match(html, /checklist-kpi-label">진행중/);
 assert.match(html, /id="settings-button"[^>]*>교육일정/);
 assert.match(html, /data-view="BUDGET">예산·정산/);
 assert.match(html, /id="management-menu-button"[^>]*>더보기/);
