@@ -11,5 +11,10 @@ assert.deepEqual(getKoreanDateTimeParts(instant), {
 assert.equal(formatKoreanDateTime('invalid', 'fallback'), 'fallback');
 assert.equal(formatKoreanDate('invalid', 'fallback'), 'fallback');
 assert.equal(getKoreanDateTimeParts('invalid'), null);
+assert.equal(formatKoreanDateTime(null, '변경시각 없음'), '변경시각 없음');
+assert.equal(formatKoreanDateTime(undefined, '변경시각 없음'), '변경시각 없음');
+assert.equal(formatKoreanDateTime('', '변경시각 없음'), '변경시각 없음');
+assert.equal(formatKoreanDate(null, '날짜 없음'), '날짜 없음');
+assert.equal(getKoreanDateTimeParts(null), null);
 
 console.log('datetime.test.js: PASS');
