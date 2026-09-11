@@ -209,7 +209,7 @@ function renderHandoverView() {
   const warning = document.querySelector('#handover-previous-warning');
   if (warning) { warning.hidden = !snapshot.previousIncomplete.length; warning.textContent = snapshot.previousIncomplete.length ? `이전 구간에 미완료 업무가 있습니다. · 이전 구간 미완료 ${snapshot.previousIncomplete.length}건` : ''; }
   renderHandoverItems(document.querySelector('#handover-first-list'), snapshot.firstItems, '우선 확인할 업무가 없습니다.');
-  renderHandoverItems(document.querySelector('#handover-next-task'), snapshot.nextTask ? [snapshot.nextTask] : [], '현재 추천할 다음 업무가 없습니다.');
+  renderHandoverItems(document.querySelector('#handover-next-task'), snapshot.nextTask ? [snapshot.nextTask] : [], "새로 시작할 미착수 업무가 없습니다. 위 '먼저 확인할 업무'를 우선 처리하세요.");
   renderHandoverItems(document.querySelector('#handover-inprogress-list'), snapshot.inProgress, '진행중 업무가 없습니다.');
   renderHandoverItems(document.querySelector('#handover-previous-list'), snapshot.previousIncomplete, '이전 구간 미완료 업무가 없습니다.');
   renderHandoverItems(document.querySelector('#handover-memo-incomplete-list'), snapshot.memoIncomplete, '메모가 있는 미완료 업무가 없습니다.');
