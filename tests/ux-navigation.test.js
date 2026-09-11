@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../css/style.css', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
 const checklistUi = readFileSync(new URL('../js/checklist-ui.js', import.meta.url), 'utf8');
 
@@ -22,6 +23,10 @@ assert.match(html, /id="operations-view"/);
 assert.doesNotMatch(html, /<h2 id="checklist-title">교육운영<\/h2>/);
 assert.match(html, /class="checklist-current-label"/);
 assert.match(html, /class="checklist-meta-line"/);
+assert.match(styles, /@media \(min-width:1366px\)/);
+assert.match(styles, /grid-template-columns:1\.5fr 1\.3fr \.9fr \.9fr 1fr \.9fr/);
+assert.match(styles, /height:112px; min-height:112px/);
+assert.match(styles, /checklist-summary-caption \{ overflow:hidden/);
 assert.match(html, /id="task-admin-view"/);
 assert.doesNotMatch(html, /id="checklist-button"/);
 assert.doesNotMatch(html, /id="dashboard-button"/);

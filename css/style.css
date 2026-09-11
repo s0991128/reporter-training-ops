@@ -858,3 +858,21 @@ footer { color:#82919c; font-size:11px; }
   .checklist-meta-line { align-items:flex-start; flex-direction:column; gap:2px; }
   .checklist-privacy-note { margin-left:0; white-space:normal; }
 }
+
+/* v0.14 KPI one-row acceptance fix */
+@media (min-width:1366px) {
+  .checklist-summary { grid-template-columns:1.5fr 1.3fr .9fr .9fr 1fr .9fr; grid-auto-flow:row; }
+  .checklist-summary .checklist-kpi-current, .checklist-summary .checklist-kpi-progress, .checklist-summary .checklist-kpi-complete, .checklist-summary .checklist-kpi-in-progress, .checklist-summary .checklist-kpi-pending, .checklist-summary .checklist-kpi-secondary { grid-column:auto; }
+  .checklist-summary .checklist-kpi-card { height:112px; min-height:112px; align-self:stretch; }
+}
+
+.checklist-summary-caption { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+@media (max-width:1365px) and (min-width:721px) {
+  .checklist-summary .checklist-kpi-card { height:104px; min-height:104px; }
+}
+
+@media (max-width:720px) {
+  .checklist-summary .checklist-kpi-card { height:96px; min-height:96px; }
+  .checklist-summary-caption { white-space:normal; }
+}

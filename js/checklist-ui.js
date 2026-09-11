@@ -34,7 +34,7 @@ export function renderChecklistSummary(container, items, state) {
   const bar = container.querySelector('[data-checklist-progress]');
   if (bar) bar.style.width = `${stats.percent}%`;
   const caption = container.querySelector('[data-checklist-caption]');
-  if (caption) caption.textContent = stats.total ? `적용 업무 ${stats.applicable}건 중 ${stats.complete}건 완료` : '업무목록.csv를 불러오는 중입니다.';
+  if (caption) caption.textContent = stats.total ? `적용 업무 ${stats.applicable}건 · 완료 ${stats.complete}건 · 진행중 ${stats.progress}건` : '업무목록.csv를 불러오는 중입니다.';
   return stats;
 }
 
