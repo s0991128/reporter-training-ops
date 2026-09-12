@@ -30,7 +30,7 @@ function getRemoteErrorMessage(status, payload = {}) {
   if (status === 400) return 'AI 분석 요청을 확인해 주세요.';
   if (status === 413) return '분석자료가 너무 큽니다.';
   if (status === 422 || payload.code === 'SENSITIVE_DATA') return '개인정보 형식이 감지되어 AI로 전송하지 않았습니다. 민감정보를 제거한 뒤 다시 시도해 주세요.';
-  if (status === 429) return '잠시 후 다시 시도해 주세요.';
+  if (status === 429 || payload.code === 'RATE_LIMIT') return '잠시 후 다시 시도해 주세요.';
   if (status === 503 || payload.code === 'AI_NOT_CONFIGURED' || payload.code === 'NOT_CONFIGURED') return 'AI 서비스가 설정되지 않았습니다.';
   if (status === 504 || payload.code === 'TIMEOUT') return 'AI 응답시간을 초과했습니다.';
   if (payload.code === 'INVALID_RESPONSE') return 'AI 응답 형식을 확인할 수 없습니다.';

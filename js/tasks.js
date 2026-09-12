@@ -4,11 +4,11 @@ import { validateTasks } from './validator.js';
 import { calculateTaskDate, getDaysDifference, getDueSoonTasks, getOverdueTasks, getScheduleStatus, getTasksDueThisWeek, getTasksDueToday, formatTaskDate, SCHEDULE_STATUS } from './schedule.js';
 import { getIncompleteDependencies, getPhaseWarnings, getTaskAlerts } from './alerts.js';
 import { renderTaskBudget } from './budget-view.js';
+import { formatKoreanDate } from './datetime.js';
 
 function escapeHtml(value = '') { return String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[character])); }
 function formatCompletedAt(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('ko-KR').format(date);
+  return formatKoreanDate(value, value);
 }
 function getScheduleMessage(task, taskState, settings) {
   const status = getScheduleStatus(task, taskState, settings);

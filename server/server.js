@@ -5,6 +5,7 @@ import { extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getConfig, isAiConfigured } from './config.js';
 import { analyzeWithLLM, AiServiceError } from './ai-service.js';
+import { createRateLimiter } from './rate-limit.js';
 import { findSensitivePatterns, validateRequestPayload } from './validation.js';
 
 const PROJECT_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -30,9 +31,9 @@ function sendJson(response, status, body) {
   response.end(json);
 }
 
-function setCorsHeaders(response, request) {
-  const origin = request.headers.origin;
-  response.setHeader('Access-Control-Allow-Origin', origin || '*');
+function setCorsHeaders(response, request, config) {
+  const origin = typeof request.headers.origin === 'string' ? request.headers.origin : '';
+  if (origin && config.allowedOrigins.includes(origin)) response.setHeader('Access-Control-Allow-Origin', origin);
   response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   response.setHeader('Vary', 'Origin');
@@ -93,6 +94,8 @@ async function handleGapAnalysis(request, response, options) {
   const requestId = randomUUID();
   const startedAt = Date.now();
   try {
+    const ip = request.socket?.remoteAddress || 'unknown';
+    if (!options.rateLimiter(ip)) throw new AiServiceError('RATE_LIMIT', '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 429);
     const rawBody = await readRequestBody(request, options.config.limits.maxRequestBytes);
     let payload;
     try { payload = JSON.parse(rawBody); }
@@ -113,9 +116,9 @@ async function handleGapAnalysis(request, response, options) {
   }
 }
 
-export function createServer({ config = getConfig(), aiService = analyzeWithLLM } = {}) {
+export function createServer({ config = getConfig(), aiService = analyzeWithLLM, rateLimiter = createRateLimiter() } = {}) {
   return createHttpServer(async (request, response) => {
-    setCorsHeaders(response, request);
+    setCorsHeaders(response, request, config);
     if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
     const pathname = new URL(request.url, 'http://localhost').pathname;
     if (pathname === '/api/health' && request.method === 'GET') {
@@ -123,7 +126,7 @@ export function createServer({ config = getConfig(), aiService = analyzeWithLLM 
       return;
     }
     if (pathname === '/api/ai-gap-analysis' && request.method === 'POST') {
-      await handleGapAnalysis(request, response, { config, aiService });
+      await handleGapAnalysis(request, response, { config, aiService, rateLimiter });
       return;
     }
     if (request.method === 'GET' || request.method === 'HEAD') { await serveStatic(request, response); return; }

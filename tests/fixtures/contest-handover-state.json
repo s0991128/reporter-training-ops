@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "description": "공모전 검증용 개인정보 없는 synthetic 인수인계 상태. 실제 운영데이터가 아님.",
+  "completed": [
+    "task-113", "task-0", "task-1", "task-2", "task-3", "task-111", "task-112",
+    "task-4", "task-5", "task-6", "task-7", "task-8", "task-98", "task-99", "task-100",
+    "task-12", "task-13", "task-14", "task-15", "task-16", "task-9",
+    "task-23", "task-24", "task-25", "task-26", "task-27", "task-28", "task-29", "task-30",
+    "task-31", "task-32", "task-33", "task-34", "task-35", "task-36", "task-101", "task-114",
+    "task-40", "task-41"
+  ],
+  "inProgress": [
+    { "key": "task-37", "memo": "촬영 및 차량 등록 1차 확인 완료", "checks": [true, false, false] },
+    { "key": "task-38", "memo": "과제 내용 확인 필요", "checks": [] },
+    { "key": "task-39", "memo": "식사 장소 이동 동선 확인", "checks": [] }
+  ],
+  "unfinished": [
+    { "key": "task-10", "memo": "개설 전 대상자 목록 재확인" },
+    { "key": "task-11", "memo": "" }
+  ],
+  "notApplicable": ["task-102", "task-115"],
+  "handoverNote": "다음 담당자는 이전 구간 미완료 2건을 먼저 확인하고, 2일차 진행 메모를 이어서 검토한다.",
+  "history": [
+    { "taskKey": "task-10", "type": "STATUS_CHANGED", "from": "NOT_STARTED", "to": "IN_PROGRESS", "at": "2026-09-03T00:01:00.000Z" },
+    { "taskKey": "task-37", "type": "STATUS_CHANGED", "from": "NOT_STARTED", "to": "IN_PROGRESS", "at": "2026-09-03T00:02:00.000Z" },
+    { "taskKey": "task-38", "type": "STATUS_CHANGED", "from": "NOT_STARTED", "to": "IN_PROGRESS", "at": "2026-09-03T00:03:00.000Z" },
+    { "taskKey": "task-37", "type": "SUBCHECK_CHANGED", "at": "2026-09-03T00:04:00.000Z" },
+    { "taskKey": "task-37", "type": "MEMO_UPDATED", "at": "2026-09-03T00:05:00.000Z" }
+  ]
+}
