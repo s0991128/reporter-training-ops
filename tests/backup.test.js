@@ -81,7 +81,7 @@ const reset = resetAllUserData();
 assert.deepEqual(reset.checklist, {});
 assert.deepEqual(reset.budget, { plans:{}, transactions:[] });
 
-assert.match(generateBackupFilename(new Date('2026-09-03T01:05:00.000Z')), /^reporter-training-backup-2026-09-03-1005\.json$/);
+assert.match(generateBackupFilename(new Date(2026, 8, 3, 10, 5)), /^reporter-training-backup-2026-09-03-1005\.json$/);
 assert.equal(validateBackup({ ...backup, application: 'other-app' }, tasks).valid, false);
 assert.equal(validateBackup({ ...backup, data: null }, tasks).valid, false);
 assert.equal(validateBackup({ ...backup, data: { ...backup.data, version: 7 } }, tasks).valid, false);

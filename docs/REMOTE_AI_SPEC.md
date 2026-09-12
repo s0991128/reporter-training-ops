@@ -32,12 +32,9 @@ PORT=8080
 AI_MODEL=gpt-5
 AI_TIMEOUT_MS=30000
 OPENAI_API_KEY=
-ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
 ```
 
 실제 키는 `.env.example`에 넣지 않는다. 로컬에서는 실행 세션 환경변수, AxHub에서는 비밀 환경변수로 설정한다. 서버의 health 응답은 `aiConfigured`의 참·거짓만 반환하고 키 값은 반환하지 않는다. 키는 로그와 오류 메시지에도 포함하지 않는다.
-
-`ALLOWED_ORIGINS`는 AI API의 브라우저 cross-origin 접근 allowlist다. AxHub 운영환경에서는 `https://reporter-training-ops.kpf.axhub.page`를 명시한다. 서버는 `request.socket.remoteAddress`를 기준으로 단일 Node process에서 1분 10회 요청을 제한한다. 이 제한은 프로세스 재시작 시 초기화되고 replica 간 공유되지 않으며, reverse proxy 환경에서는 proxy IP를 볼 수 있다. CORS와 rate limit은 직접 HTTP 요청 자체를 인증하지 않으므로 정식 다중 사용자 운영에는 기관 인증과 승인된 shared limiter가 필요하다.
 
 ## 요청 구조
 

@@ -1,6 +1,0 @@
-{
-  "synthetic": true,
-  "description": "앞 구간 미완료 상태에서 미래 구간 업무를 선완료한 current-section 관찰용 synthetic case.",
-  "completed": ["task-42"],
-  "unfinished": ["task-113"]
-}

@@ -1,6 +1,5 @@
 import { CHECKLIST_STATUS } from './storage.js';
 import { getHandoverSnapshot } from './handover.js';
-import { formatKoreanDateTime, getKoreanDateTimeParts } from './datetime.js';
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character]));
@@ -16,12 +15,15 @@ function statusLabel(status) {
 }
 
 function formatDate(value) {
-  return formatKoreanDateTime(value, '-');
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : new Intl.DateTimeFormat('ko-KR', { dateStyle:'medium', timeStyle:'short' }).format(date);
 }
 
 function formatDateOnly(value) {
-  const parts = getKoreanDateTimeParts(value);
-  return parts ? `${parts.year}-${parts.month}-${parts.day}` : '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = number => String(number).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function renderItem(entry, includeMemo = true) {

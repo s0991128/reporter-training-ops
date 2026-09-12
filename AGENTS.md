@@ -20,5 +20,3 @@ Use concise imperative commits such as `Fix local server binding`. Pull requests
 
 ## Agent Notes
 Inspect the current branch and remote changes before editing. Preserve unrelated work, update `README.md` and relevant specs, and never commit local operation backups.
-
-Display or export filename timestamps must use the `Asia/Seoul` time zone explicitly; a `ko-KR` locale alone does not guarantee it. Treat schedule and calendar business-day calculations as separate logic requiring dedicated verification.
