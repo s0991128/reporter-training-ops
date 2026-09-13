@@ -9,6 +9,6 @@
   "scripts": {
     "start": "node server/server.js",
     "build:static": "node scripts/build-static-release.mjs",
-    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/datetime.test.js && node tests/backup.test.js && node tests/gap-analysis.test.js && node tests/checklist.test.js && node tests/checklist-metadata.test.js && node tests/handover.test.js && node tests/server.test.js && node tests/contest-validation.test.js && node tests/ux-navigation.test.js && node tests/static-assets.test.js"
+    "test": "node tests/task-master.test.js && node tests/alerts.test.js && node tests/budget.test.js && node tests/datetime.test.js && node tests/backup.test.js && node tests/storage.test.js && node tests/gap-analysis.test.js && node tests/checklist.test.js && node tests/checklist-metadata.test.js && node tests/handover.test.js && node tests/server.test.js && node tests/contest-validation.test.js && node tests/ux-navigation.test.js && node tests/static-assets.test.js"
   }
 }

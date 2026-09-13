@@ -8,7 +8,7 @@ import { CHECKLIST_STATUS, loadState, saveChecklistState, saveHandoverNote } fro
 const csvText = await fs.readFile(new URL('../업무목록.csv', import.meta.url), 'utf8');
 const csvUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(csvText)}`;
 const checklist = await loadChecklist(csvUrl);
-const state = { version:6, projectId:'reporter-training-ops', settings:{ trainingName:'테스트 교육' }, tasks:{}, checklist:{}, checklistHistory:[], handover:{ note:'', updatedAt:null }, budget:{ plans:{}, transactions:[] } };
+const state = { version:7, projectId:'reporter-training-ops', settings:{ trainingName:'테스트 교육' }, tasks:{}, checklist:{}, checklistHistory:[], handover:{ note:'', updatedAt:null }, budget:{ plans:{}, transactions:[] } };
 const firstGroup = checklist.groups[0];
 const secondGroup = checklist.groups[1];
 const firstTask = firstGroup.items[0];
@@ -46,7 +46,7 @@ const originalLocalStorage = globalThis.localStorage;
 const storedValues = new Map();
 globalThis.localStorage = { getItem(key) { return storedValues.get(key) || null; }, setItem(key, value) { storedValues.set(key, value); } };
 const savedState = loadState();
-assert.equal(savedState.version, 6);
+assert.equal(savedState.version, 7);
 const savedEntry = saveChecklistState('task-history', { status:CHECKLIST_STATUS.IN_PROGRESS, memo:'확인 필요', checks:[] });
 assert.ok(savedEntry.updatedAt);
 let stored = loadState();

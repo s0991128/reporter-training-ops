@@ -14,7 +14,7 @@ import {
   parseChecklistCsv,
   validateChecklistRows
 } from '../js/checklist.js';
-import { loadState, saveChecklistState } from '../js/storage.js';
+import { STORAGE_KEY, STORAGE_VERSION, loadState, saveChecklistState } from '../js/storage.js';
 
 const csvText = await fs.readFile(new URL('../업무목록.csv', import.meta.url), 'utf8');
 const parsed = parseChecklistCsv(csvText);
@@ -59,22 +59,15 @@ assert.deepEqual(findChecklistSensitivePatterns('담당자 010-1234-5678 확인'
 assert.deepEqual(findChecklistSensitivePatterns('contact@example.com'), ['이메일']);
 
 const originalLocalStorage = globalThis.localStorage;
-const storedValues = new Map([['trainee-reporter-training-state-v5', JSON.stringify({ version:5, projectId:'reporter-training-ops', settings:{ trainingName:'기존 교육' }, tasks:{ 'PRE-001':{ status:'COMPLETED', completedAt:null, memo:'기존 상태' } }, checklist:{ 'task-old':{ status:'IN_PROGRESS', completedAt:null, memo:'기존 체크리스트 메모', checks:[] } }, budget:{ plans:{ TEST:1000 }, transactions:[] } })]]);
+const storedValues = new Map();
 globalThis.localStorage = { getItem(key) { return storedValues.get(key) || null; }, setItem(key, value) { storedValues.set(key, value); } };
-const migrated = loadState();
-assert.equal(migrated.version, 6);
-assert.equal(migrated.tasks['PRE-001'].memo, '기존 상태');
-assert.equal(migrated.budget.plans.TEST, 1000);
-assert.equal(migrated.checklist['task-old'].memo, '기존 체크리스트 메모');
-assert.equal(migrated.checklist['task-old'].updatedAt, null);
-assert.deepEqual(migrated.checklistHistory, []);
-assert.deepEqual(migrated.handover, { note:'', updatedAt:null });
+const cleanState = loadState();
+assert.equal(cleanState.version, STORAGE_VERSION);
 const saved = saveChecklistState('task-three', { status:'IN_PROGRESS', checks:[true, false, false], memo:'회신 대기' });
 assert.equal(saved.status, 'IN_PROGRESS');
 assert.ok(saved.updatedAt);
-assert.deepEqual(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).checklist['task-three'].checks, [true, false, false]);
-assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).tasks['PRE-001'].memo, '기존 상태');
-assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).checklistHistory.length, 3);
+assert.deepEqual(JSON.parse(storedValues.get(STORAGE_KEY)).checklist['task-three'].checks, [true, false, false]);
+assert.equal(JSON.parse(storedValues.get(STORAGE_KEY)).checklistHistory.length, 3);
 globalThis.localStorage = originalLocalStorage;
 
 console.log('checklist.test.js: PASS');

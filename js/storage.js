@@ -1,5 +1,5 @@
-export const STORAGE_KEY = 'trainee-reporter-training-state-v6';
-export const STORAGE_VERSION = 6;
+export const STORAGE_KEY = 'trainee-reporter-training-state-v7';
+export const STORAGE_VERSION = 7;
 export const PROJECT_ID = 'reporter-training-ops';
 export const TASK_STATUS = Object.freeze({ NOT_STARTED:'NOT_STARTED', IN_PROGRESS:'IN_PROGRESS', COMPLETED:'COMPLETED' });
 export const CHECKLIST_STATUS = Object.freeze({ NOT_STARTED:'NOT_STARTED', IN_PROGRESS:'IN_PROGRESS', COMPLETED:'COMPLETED', NOT_APPLICABLE:'NOT_APPLICABLE' });
@@ -8,7 +8,6 @@ export const CHECKLIST_HISTORY_LIMIT = 200;
 export const HANDOVER_NOTE_LIMIT = 2000;
 
 const LEGACY_TASK_ID_MAP = Object.freeze({ 'END-001':'CLS-001', 'END-003':'CLS-002', 'BUD-001':'FIN-001', 'BUD-002':'FIN-002', 'BUD-003':'FIN-003' });
-const LEGACY_STORAGE_KEYS = ['trainee-reporter-training-state-v5', 'trainee-reporter-training-state-v4', 'trainee-reporter-training-state-v3', 'trainee-reporter-training-state-v2', 'trainee-reporter-training-state-v1'];
 const TRANSACTION_STATUSES = ['PLANNED', 'COMMITTED', 'PAID', 'CANCELLED'];
 const SETTLEMENT_STATUSES = ['NOT_REQUIRED', 'PENDING', 'COMPLETED'];
 const CHECKLIST_HISTORY_TYPES = ['STATUS_CHANGED', 'SUBCHECK_CHANGED', 'MEMO_UPDATED'];
@@ -137,7 +136,7 @@ function normalizeBudget(budget = {}) {
   return { plans, transactions };
 }
 
-function normalizeState(saved) {
+function normalizeImportedState(saved) {
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return createEmptyState();
   if (saved.version === STORAGE_VERSION && saved.projectId === PROJECT_ID) {
     const tasks = saved.tasks && typeof saved.tasks === 'object' && !Array.isArray(saved.tasks) ? saved.tasks : {};
@@ -151,14 +150,17 @@ function normalizeState(saved) {
 }
 
 function readStoredState() {
-  const keys = [STORAGE_KEY, ...LEGACY_STORAGE_KEYS];
-  for (const key of keys) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) return JSON.parse(raw);
-    } catch { /* Continue with the next legacy key when a value is malformed. */ }
-  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* Malformed or unavailable v7 storage starts from the clean state. */ }
   return null;
+}
+
+function normalizeStoredState(saved) {
+  if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return createEmptyState();
+  if (saved.version !== STORAGE_VERSION || saved.projectId !== PROJECT_ID) return createEmptyState();
+  return normalizeImportedState(saved);
 }
 
 function persistState(state) {
@@ -168,14 +170,14 @@ function persistState(state) {
 export function loadState() {
   try {
     const saved = readStoredState();
-    const state = normalizeState(saved);
+    const state = normalizeStoredState(saved);
     if (!saved || saved.version !== STORAGE_VERSION || saved.projectId !== PROJECT_ID || !saved.settings || saved.checklist === undefined || saved.checklistHistory === undefined || saved.handover === undefined) persistState(state);
     return state;
   } catch { return createEmptyState(); }
 }
 
 export function replaceState(saved) {
-  const state = normalizeState(saved);
+  const state = normalizeImportedState(saved);
   persistState(state);
   return state;
 }

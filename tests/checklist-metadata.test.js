@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { parseChecklistCsv } from '../js/checklist.js';
 import { createOperationalTasks, mergeChecklistMetadata, validateChecklistMetadata } from '../js/checklist-metadata.js';
 import { handleTaskEvent } from '../js/tasks.js';
-import { getTaskState, loadState } from '../js/storage.js';
+import { STORAGE_KEY, getTaskState, loadState } from '../js/storage.js';
 
 const csv = await readFile(new URL('../업무목록.csv', import.meta.url), 'utf8');
 const metadata = JSON.parse(await readFile(new URL('../data/checklist-metadata.json', import.meta.url), 'utf8'));
@@ -36,11 +36,11 @@ const completionEvent = { type:'change', target:{ dataset:{ action:'complete' },
 handleTaskEvent(completionEvent, state, () => {}, [{ id:'task-1', dependencies:[] }]);
 assert.equal(getTaskState(state, 'task-1').status, 'COMPLETED');
 assert.equal(state.tasks['task-1'], undefined);
-assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).tasks['task-1'], undefined);
+assert.equal(JSON.parse(storedValues.get(STORAGE_KEY)).tasks['task-1'], undefined);
 const memoEvent = { type:'input', target:{ dataset:{ action:'memo-input' }, value:'회신 대기', closest() { return card; } } };
 handleTaskEvent(memoEvent, state, () => {}, [{ id:'task-1', dependencies:[] }]);
 assert.equal(getTaskState(state, 'task-1').memo, '회신 대기');
-assert.equal(JSON.parse(storedValues.get('trainee-reporter-training-state-v6')).tasks['task-1'], undefined);
+assert.equal(JSON.parse(storedValues.get(STORAGE_KEY)).tasks['task-1'], undefined);
 globalThis.localStorage = originalLocalStorage;
 
 console.log('checklist-metadata.test.js: PASS');

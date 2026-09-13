@@ -40,6 +40,7 @@ assert.match(app, /function showView\(viewName\)/);
 assert.match(app, /querySelector\('#home-button'\)\?\.addEventListener\('click', \(\) => \{\s*showView\('OPERATIONS'\);/);
 assert.match(styles, /\.home-button \{ width:42px; height:42px; min-height:42px; padding:0; display:inline-flex; align-items:center; justify-content:center; \}/);
 assert.match(styles, /\.home-button svg \{ width:19px; height:19px; \}/);
+assert.match(styles, /\.nav-button:focus-visible, \.home-button:focus-visible/);
 assert.match(checklistUi, /class="checklist-list"/);
 assert.match(checklistUi, /checklist-section-block/);
 assert.match(checklistUi, /data-checklist-action="toggle-details"/);

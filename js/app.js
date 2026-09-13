@@ -71,6 +71,7 @@ let checklistSort = 'default';
 let expandedChecklistKey = null;
 let activeView = 'OPERATIONS';
 let handoverHistoryExpanded = false;
+let transactionFormBaseline = '';
 const memoTimers = new Map();
 const memoDrafts = new Map();
 
@@ -283,7 +284,39 @@ function closeManagementMenu() {
   if (button) button.setAttribute('aria-expanded', 'false');
 }
 
+function isUnsavedHandoverDraft() {
+  const note = document.querySelector('#handover-note');
+  return Boolean(!handoverView.hidden && note && note.value !== (state.handover?.note || ''));
+}
+
+function getTransactionFormFingerprint(form = document.querySelector('#transaction-form')) {
+  if (!form) return '';
+  return JSON.stringify({
+    editId:form.elements.editId.value,
+    categoryId:form.elements.categoryId.value,
+    amount:form.elements.amount.value,
+    status:form.elements.status.value,
+    date:form.elements.date.value,
+    description:form.elements.description.value,
+    taskId:form.elements.taskId.value,
+    settlementStatus:form.elements.settlementStatus.value,
+    memo:form.elements.memo.value
+  });
+}
+
+function isUnsavedTransactionDraft() {
+  const budgetView = document.querySelector('#budget-view');
+  return Boolean(budgetView && !budgetView.hidden && transactionFormBaseline && getTransactionFormFingerprint() !== transactionFormBaseline);
+}
+
+function confirmViewChange() {
+  if (isUnsavedHandoverDraft()) return window.confirm('저장하지 않은 인수인계 메모가 있습니다.\n이동하면 입력한 내용이 사라집니다. 이동하시겠습니까?');
+  if (isUnsavedTransactionDraft()) return window.confirm('저장하지 않은 지출 입력이 있습니다.\n이동하면 입력한 내용이 사라집니다. 이동하시겠습니까?');
+  return true;
+}
+
 function showView(viewName) {
+  if (!confirmViewChange()) return false;
   const views = { OPERATIONS:operationsView, HANDOVER:handoverView, GAP:gapAnalysisPanel, BUDGET:document.querySelector('#budget-view'), TASK_MASTER:taskAdminPanel };
   Object.entries(views).forEach(([name, view]) => { if (view) view.hidden = name !== viewName; });
   if (dashboardView) dashboardView.hidden = true;
@@ -297,6 +330,7 @@ function showView(viewName) {
   if (viewName === 'BUDGET') { populateBudgetOptions(); resetTransactionForm(); }
   if (viewName === 'TASK_MASTER') renderTaskAdminView();
   window.scrollTo({ top:0, behavior:'smooth' });
+  return true;
 }
 
 function syncChecklistState() {
@@ -657,7 +691,7 @@ function populateBudgetOptions() {
 }
 
 function openBudgetPanel() {
-  showView('BUDGET');
+  if (!showView('BUDGET')) return;
   document.querySelector('#transaction-description').focus();
 }
 
@@ -676,7 +710,7 @@ function focusChecklistItem(key) {
 }
 
 function closeBudgetPanel() {
-  showView('OPERATIONS');
+  if (!showView('OPERATIONS')) return;
   resetTransactionForm();
 }
 
@@ -689,6 +723,7 @@ function resetTransactionForm() {
   form.elements.settlementStatus.value = 'NOT_REQUIRED';
   document.querySelector('#transaction-form-error').textContent = '';
   document.querySelector('#transaction-cancel-edit').hidden = true;
+  transactionFormBaseline = getTransactionFormFingerprint(form);
 }
 
 function editTransaction(transactionId) {
@@ -706,6 +741,7 @@ function editTransaction(transactionId) {
   form.elements.settlementStatus.value = transaction.settlementStatus;
   form.elements.memo.value = transaction.memo;
   document.querySelector('#transaction-cancel-edit').hidden = false;
+  transactionFormBaseline = getTransactionFormFingerprint(form);
   form.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
