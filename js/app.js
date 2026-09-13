@@ -1102,6 +1102,9 @@ taskAdminForm.addEventListener('submit', saveAdminTask);
 taskCsvInput.addEventListener('change', importAdminCsv);
 
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+document.querySelector('#home-button')?.addEventListener('click', () => {
+  showView('OPERATIONS');
+});
 document.querySelector('#management-menu-button').addEventListener('click', event => {
   event.stopPropagation();
   const menu = document.querySelector('#management-menu');
