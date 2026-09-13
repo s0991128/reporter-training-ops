@@ -43,7 +43,7 @@ function renderTaskAlerts(alerts) {
   }).join('')}</div>`;
 }
 
-export async function loadTasks(url = './data/tasks.json') {
+export async function loadTasks(url = new URL('../data/tasks.json', import.meta.url)) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`업무 데이터 로드 실패: HTTP ${response.status}`);
   const tasks = await response.json();

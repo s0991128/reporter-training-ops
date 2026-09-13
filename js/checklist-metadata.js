@@ -138,7 +138,7 @@ export function createOperationalTasks(items = []) {
   });
 }
 
-export async function loadChecklistMetadata(url = './data/checklist-metadata.json') {
+export async function loadChecklistMetadata(url = new URL('../data/checklist-metadata.json', import.meta.url)) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`체크리스트 메타데이터 로드 실패: HTTP ${response.status}`);
   const metadata = await response.json();

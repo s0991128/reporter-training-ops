@@ -99,7 +99,7 @@ export function groupChecklistItems(rows = []) {
   return groups;
 }
 
-export async function loadChecklist(url = './업무목록.csv', metadataUrl = './data/checklist-metadata.json') {
+export async function loadChecklist(url = new URL('../업무목록.csv', import.meta.url), metadataUrl = new URL('../data/checklist-metadata.json', import.meta.url)) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`업무목록.csv 로드 실패: HTTP ${response.status}`);
   const parsed = parseChecklistCsv(await response.text());
@@ -149,7 +149,9 @@ async function loadMetadataForEnvironment(url) {
   try {
     return await loadChecklistMetadata(url);
   } catch (error) {
-    if (typeof process === 'undefined' || !process.versions?.node || !String(url).startsWith('.') || !/Failed to parse URL|Invalid URL/.test(error?.message || '')) throw error;
+    const isNode = typeof process !== 'undefined' && process.versions?.node;
+    const isLocalPath = String(url).startsWith('.') || String(url).startsWith('file:');
+    if (!isNode || !isLocalPath || !/fetch failed|Failed to parse URL|Invalid URL/.test(error?.message || '')) throw error;
     const { readFile } = await import('node:fs/promises');
     const metadata = JSON.parse(await readFile(new URL('../data/checklist-metadata.json', import.meta.url), 'utf8'));
     return metadata;

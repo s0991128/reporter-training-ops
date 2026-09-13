@@ -12,3 +12,4 @@ SHA256.txt
 사용안내.txt
 reporter-training-backup-*.json
 reporter-training-backups/
+dist/

@@ -46,7 +46,7 @@ export function validateBudgetCategories(categories) {
   return { valid:errors.length === 0, errors };
 }
 
-export async function loadBudgetCategories(url = './data/budget-categories.json') {
+export async function loadBudgetCategories(url = new URL('../data/budget-categories.json', import.meta.url)) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`예산항목 로드 실패: HTTP ${response.status}`);
   const categories = await response.json();

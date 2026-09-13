@@ -6,6 +6,10 @@
 
 `업무목록.csv`, `data/checklist-metadata.json`, `data/tasks.json`을 `fetch`로 읽으므로 `index.html`을 `file://`로 직접 열지 않습니다. 권장 실행 환경은 Node.js 24 LTS이며, 로컬 서버는 기본적으로 `127.0.0.1`에만 바인딩됩니다.
 
+### 정적 배포와 캐시 안전 경로
+
+`npm run build:static`은 현재 Git 커밋 SHA를 포함한 `dist/assets/v014-<short-sha>/` 경로에 CSS·JS·JSON·CSV를 함께 생성합니다. 배포용 `dist/index.html`은 이 버전 경로만 참조하므로, 이전 릴리스의 장기 캐시 자산과 새 릴리스가 섞이지 않습니다. `dist/`는 생성물이며 Git에 커밋하지 않습니다.
+
 ```powershell
 $env:HOST = "127.0.0.1"
 npm start
