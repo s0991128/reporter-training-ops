@@ -10,6 +10,8 @@ const assetRoot = join(result.outputDirectory, 'assets', result.assetVersion);
 assert.match(result.assetVersion, /^v014-[0-9a-f]{7}$/);
 assert.match(indexHtml, new RegExp(`href="assets/${result.assetVersion}/css/style\\.css"`));
 assert.match(indexHtml, new RegExp(`src="assets/${result.assetVersion}/js/app\\.js"`));
+assert.match(indexHtml, /window\.REPORTER_TRAINING_STATIC_RELEASE = true/);
+assert.match(indexHtml, /rel="icon" href="data:image\/svg\+xml/);
 assert.doesNotMatch(indexHtml, /href="css\/style\.css"/);
 assert.doesNotMatch(indexHtml, /src="js\/app\.js"/);
 

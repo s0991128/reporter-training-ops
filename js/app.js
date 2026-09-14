@@ -42,6 +42,7 @@ const taskCsvInput = document.querySelector('#task-csv-input');
 const gapAnalysisPanel = document.querySelector('#gap-analysis-view');
 const gapSourceInput = document.querySelector('#gap-source-input');
 const gapAnalysisMode = document.querySelector('#gap-analysis-mode');
+const gapServerOnlyNote = document.querySelector('#gap-server-only-note');
 const gapResultSummary = document.querySelector('#gap-result-summary');
 const gapResultList = document.querySelector('#gap-result-list');
 const dashboardView = document.querySelector('#dashboard-view');
@@ -74,6 +75,18 @@ let handoverHistoryExpanded = false;
 let transactionFormBaseline = '';
 const memoTimers = new Map();
 const memoDrafts = new Map();
+const isStaticRelease = globalThis.REPORTER_TRAINING_STATIC_RELEASE === true;
+
+function configureGapAnalysisAvailability() {
+  if (!isStaticRelease || !gapAnalysisMode) return;
+  const remoteAiOption = gapAnalysisMode.querySelector(`option[value="${AI_MODES.REMOTE_AI}"]`);
+  if (remoteAiOption) {
+    remoteAiOption.disabled = true;
+    remoteAiOption.textContent = 'AI 정밀분석 · 서버형 환경에서만 사용';
+  }
+  gapAnalysisMode.value = AI_MODES.LOCAL_RULE;
+  if (gapServerOnlyNote) gapServerOnlyNote.hidden = false;
+}
 
 async function initializeTasks() {
   try {
@@ -921,6 +934,10 @@ async function runGapAnalysis() {
   if (!gapSources.length) { setGapMessage('분석자료를 먼저 추가해 주세요.', true); return; }
   if (gapAnalysisRunning) return;
   const mode = gapAnalysisMode.value || AI_MODES.LOCAL_RULE;
+  if (isStaticRelease && mode === AI_MODES.REMOTE_AI) {
+    setGapMessage('AI 정밀분석은 서버형 환경에서 사용할 수 있습니다.', true);
+    return;
+  }
   if (mode === AI_MODES.REMOTE_AI) {
     const inputValidation = validateGapSources(gapSources);
     if (!inputValidation.valid) {
@@ -1279,4 +1296,5 @@ document.addEventListener('keydown', event => {
   else if (!document.querySelector('#budget-view').hidden) closeBudgetPanel();
 });
 
+configureGapAnalysisAvailability();
 initializeTasks();

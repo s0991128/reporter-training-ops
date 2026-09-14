@@ -19,10 +19,10 @@
 - JSON backup/restore
 - HTML 인수인계 보고서
 - 예산·정산 PoC
-- AI 업무 누락점검
+- Production 기본 누락점검
+- 서버 기반 AI 정밀분석 PoC (서버형 환경 전용)
 - 개인정보 입력 방지
-- 서버 기반 AI 호출
-- CORS allowlist와 IP rate limit
+- AI 정밀분석 PoC의 CORS allowlist, IP rate limit, 개인정보 차단, 서버 응답 validation
 - `Asia/Seoul` 기준 timestamp 표시
 
 ## 4. 정량 검증
@@ -36,12 +36,27 @@
 | 구조적 오류 | 0건 |
 | backup/restore | 100% |
 | synthetic handover ground truth | 7/7 |
-| 자동 test suite | 11개 PASS |
+| Node | v24.20.0 |
+| 자동 test suite | 14개 PASS |
 | timezone regression | UTC, Asia/Seoul, America/New_York PASS |
+| clean start | 117건 · 16구간 · 3회 체크 10건 · 완료 0 · 진행중 0 · 미완료 117 |
+| 상태 저장/복원 | PASS |
+| 3회 체크 | PASS |
+| 해당없음 분모 | PASS |
+| 인수인계 | PASS |
+| 개인정보 차단 | PASS |
+| 화면 폭 | 1600×900 · 1366×768 · 1024px PASS |
+| JavaScript exception | 0건 |
+
+### Production과 PoC 구분
+
+- Production static release에서는 브라우저 규칙 기반 기본 누락점검을 제공합니다.
+- 서버 기반 AI 정밀분석은 서버형 PoC에서만 제공합니다. static release에서는 실행할 수 없도록 비활성화하고 안내를 표시합니다.
+- AI 정밀분석 PoC는 CORS allowlist, IP rate limit, 개인정보 차단, 서버 응답 validation을 적용합니다.
 
 ### Proxy Benchmark
 
-동일 synthetic 운영상태를 기준으로 Claude와 Grok이 비구조화 자료와 시스템 구조화 산출물에서 답한 7문항을 비교한 보조 지표다.
+동일 synthetic 운영상태를 기준으로 Claude와 Grok 외부 AI agent가 비구조화 자료와 시스템 구조화 산출물에서 답한 7문항을 비교한 보조 지표다. 실제 사용자 실증이나 Production AI 성능을 의미하지 않는다.
 
 | 지표 | BEFORE | AFTER | 변화 |
 | --- | ---: | ---: | ---: |
@@ -88,6 +103,6 @@
 
 ## 9. 핵심 메시지
 
-> 117개의 담당자 경험을 표준 운영지식으로 바꾸고, AI가 그 지식의 누락을 점검합니다.
+> 117개의 담당자 경험을 표준 운영지식으로 바꾸고, 누락점검과 AI 정밀분석 PoC로 업무 공백을 줄입니다.
 
 본 문서는 [CONTEST_CHECKLIST_VALIDATION.md](./CONTEST_CHECKLIST_VALIDATION.md), [CONTEST_HANDOVER_EXPECTED.md](./CONTEST_HANDOVER_EXPECTED.md), [CONTEST_KPI_TEMPLATE.md](./CONTEST_KPI_TEMPLATE.md), [CONTEST_VALIDATION_RESULTS.md](./CONTEST_VALIDATION_RESULTS.md)와 동일한 검증 범위를 사용한다.

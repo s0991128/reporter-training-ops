@@ -31,6 +31,12 @@ function replaceAssetReferences(html, assetBasePath) {
   }, html);
 }
 
+function markStaticRelease(html) {
+  const marker = '<script>window.REPORTER_TRAINING_STATIC_RELEASE = true;</script>';
+  if (!html.includes('</head>')) throw new Error('index.html에서 head 종료 태그를 찾을 수 없습니다.');
+  return html.replace('</head>', `    ${marker}\n  </head>`);
+}
+
 export async function buildStaticRelease({ root = projectRoot } = {}) {
   const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const assetVersion = getAssetVersion(packageJson.version, getCommitShortSha(root));
@@ -46,7 +52,7 @@ export async function buildStaticRelease({ root = projectRoot } = {}) {
     cp(join(root, 'js'), join(assetDirectory, 'js'), { recursive:true }),
     cp(join(root, 'data'), join(assetDirectory, 'data'), { recursive:true }),
     cp(join(root, '업무목록.csv'), join(assetDirectory, '업무목록.csv')),
-    writeFile(join(outputDirectory, 'index.html'), replaceAssetReferences(indexHtml, assetBasePath), 'utf8')
+    writeFile(join(outputDirectory, 'index.html'), markStaticRelease(replaceAssetReferences(indexHtml, assetBasePath)), 'utf8')
   ]);
 
   return { assetVersion, assetBasePath, outputDirectory };

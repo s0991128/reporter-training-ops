@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="수습기자 기본교육 업무를 표준화하고 운영 현황을 관리합니다." />
     <title>수습기자 기본교육 운영</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231f4b66'/%3E%3Cpath d='M18 17h28v30H18z' fill='%23fff' opacity='.96'/%3E%3Cpath d='M24 27h16M24 35h16M24 43h10' stroke='%231f4b66' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
@@ -163,6 +164,7 @@
             <div><span>분석자료</span><strong id="gap-source-count">0개 파일</strong></div>
             <div><span>분석 모드</span><label><select id="gap-analysis-mode"><option value="LOCAL_RULE">기본 비교 · 브라우저 규칙</option><option value="REMOTE_AI">AI 정밀분석 · 서버 필요</option></select></label></div>
           </div>
+          <p id="gap-server-only-note" class="gap-server-only-note" hidden>AI 정밀분석은 서버형 환경에서 사용할 수 있습니다.</p>
           <div class="gap-source-toolbar"><label class="gap-file-picker">분석자료 추가<input id="gap-source-input" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json" multiple /></label><button id="gap-analysis-run" class="settings-save" type="button" disabled>누락점검 실행</button></div>
           <p class="gap-supported-note">현재 버전은 텍스트, Markdown, CSV, JSON 파일을 지원합니다. PDF, DOCX, HWP, HWPX는 지원하지 않습니다.</p>
           <p id="gap-analysis-message" class="gap-analysis-message" role="status"></p>

@@ -905,6 +905,7 @@ body { font-family:'Pretendard','SUIT',system-ui,-apple-system,'Apple SD Gothic 
 .checklist-status-cell select { font-family:inherit; font-size:14px; font-weight:600; }
 .checklist-check-cell, .checklist-three-count { font-family:inherit; font-size:13px; }
 .checklist-memo-button { font-family:inherit; font-size:14px; font-weight:600; }
+.gap-server-only-note { margin:0 0 14px; padding:10px 12px; border:1px solid #cbdbe3; border-radius:8px; color:#4f6674; background:#f4f8fa; font-size:13px; line-height:1.45; }
 
 @media (min-width:1366px) {
   .checklist-summary { grid-template-columns:repeat(6, minmax(0, 1fr)); gap:14px; }
